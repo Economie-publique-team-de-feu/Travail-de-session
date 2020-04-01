@@ -8,9 +8,9 @@ jupyter:
       format_version: '1.2'
       jupytext_version: 1.4.1
   kernelspec:
-    display_name: R
-    language: R
-    name: ir
+    display_name: Python 3
+    language: python
+    name: python3
 ---
 
 # Offre de travail
@@ -23,7 +23,7 @@ Les variables globales sont définies pour le moment, elles seront discutées de
 - *weeks* est le nombre de semaines de travail par année.
 - *lincr* est le nombre minimal d'heures annuelles de travail que l'individu peut ajuster.
 
-```{r}
+```{python}
 library(readr) # package pour lire les .csv
 library(compiler) # package pour le Just-in-time compilation
 enableJIT(3) # Option du package compiler
@@ -46,7 +46,7 @@ Pour cette analyse, nous allons utiliser les données du *Labour Force Survey* p
 
 Le code suivant est pour charger les données sur MS Azur:
 
-```{r}
+```{python}
 #library("AzureML")
 
 #ws <- workspace(
@@ -63,8 +63,8 @@ Le code suivant est pour charger les données sur MS Azur:
 
 ### Suite...
 
-```{r}
-lfs <- read_csv("./LFS-71M0001-E-2020-February_F1.csv", col_types = cols()) # importe les données du LFS, May 2018
+```{python}
+lfs <- read_csv("./lfs-71M0001-E-2018-may_F1.csv", col_types = cols()) # importe les données du LFS, May 2018
 #lfs <- ds
 lfsqc <- lfs[lfs$PROV==24,] # garde uniquement le Québec
 rm(lfs) # supprime la base initiale de la mémoire
@@ -87,7 +87,7 @@ summary(cbind(Xmat,wage)) # résumé des variables
 
 Nous allons aussi utiliser les taux de taxe et paliers suivants:
 
-```{r}
+```{python}
   # source1: http://www.nrgcpa.ca/deductions-a-la-source-et-charges-sociales
   # source2: http://www4.gouv.qc.ca/FR/Portail/Citoyens/Evenements/immigrer-au-quebec/Pages/programme-aide-sociale.aspx
 
@@ -128,7 +128,7 @@ où $C$ est la consommation (i.e. le revenu disponible) et $L$ est la quantité 
 
 Le code R associé est donné par la fonction suivante:
 
-```{r}
+```{python}
 Utilite <- function(i,L,alpha,theta){
   # Fonction d'utilité du travail et de la consommation
       util <- alpha[i]*log(Lmax-L)+log(Cnet(i,L)) + theta[k+2]*as.numeric(L==2000) + theta[k+3]*as.numeric(L==0)
@@ -144,7 +144,7 @@ $$
 
 qui sera saturée à l'optimum. Remarquez que la taxe est ici en général une fonction non-linéaire et que le salaire de l'individu $w_i$ peut être différent d'un individu à l'autre. Le code R associé à la contrainte budgétaire est donné par:
 
-```{r}
+```{python}
 Cnet <- function(i,L){
   # Calcule la consommation nette (revenu disponible)
   dispo <- L*wage[i]-itax(L*wage[i])[1]
@@ -154,7 +154,7 @@ Cnet <- function(i,L){
 
 La consommation est une fonction de l'individu *i* (son salaire) et du nombre d'heures travaillées *L*. La fonction dépend aussi de la taxation du revenu par la fonction *itax*. Cette fonction est donnée par le code suivant:
 
-```{r}
+```{python}
 itax <- function(inc){
   # Calcule les impôts sur le revenu
    
@@ -212,7 +212,7 @@ Cette fonction de taxe prend en compte les paliers d'imposition fédéraux (*fed
 
 Notez qu'on peut directement voir l'impact de la fonction de taxe, sans hypothèses sur le comportement des individus en regardant les taux marginaux effectifs (TME) d'imposition. Le code suivant crée un graphique pour des incréments salariaux annuels de *incr* jusqu'à un revenu annuel de *imax*\$
 
-```{r}
+```{python}
 tme <- function(incr,imax){
   # calcule les taux marginaux effectifs d'imposition, par incréments de "incr"$, jusqu'à imax$
   incm <- seq(0,imax,by=incr) # vecteur des niveaux de revenus
@@ -242,7 +242,7 @@ On voit donc que le $\alpha_i$ permet à deux individus ayant le même salaire h
 
 Ici, on suppose que l'individu a le choix d'ajuster ses heures de travail de façon discrète (des heures entières). Puisque ce sont des heures annuelles, ce n'est pas une hypothèse très forte. La fonction suivante évalue l'utilité pour différents choix d'heure de travail:
 
-```{r}
+```{python}
 umarginal <- function(i,incr,alpha,theta){
   # calcule l'utilité pour i marginale par incréments de incr heures de travail
   lsup <- seq(0,Lmax,by=incr) # vecteur des heures travaillées
@@ -253,7 +253,7 @@ umarginal <- function(i,incr,alpha,theta){
 }
 ```
 
-```{r}
+```{python}
 
 ```
 
@@ -264,7 +264,7 @@ La fonction demande l'individu *i*, le plus petit ajustement des heures annuelle
 
 Avec la commande suivante, on trouve facilement le nombre d'heures travaillées pour *i=10*, pour le *alpha* déclaré au début du code, pouvant ajuster ses heures de travail par blocs de *lincr* heures annuellement.
 
-```{r}
+```{python}
 theta0 <- rep(1,(k+3))*0.01 # valeur initial de theta: k+1=écart-type des erreurs, k+2=40h/sem, k+3=0h/sem
 alpha <- as.numeric(Xmat%*%matrix(theta0[1:4],4,1)) # valeur initiale de alpha
 vec_u <- umarginal(10,lincr,alpha,theta0)[[3]] # vecteur des utilités
@@ -294,7 +294,7 @@ Par contre, notez qu'il y a plusieurs variables explicatives, donc il y a probab
 
 Le code suivant génère les moments associés.
 
-```{r}
+```{python}
 rhours <- as.numeric(lfsqc$ATOTHRS)*weeks # nombre d'heures annuelles sur une base de 'weeks' semaines de travail
 wrhours <- rhours*wght
 rwse <-  sqrt((sum(wght*(rhours^2))/sum(wght))-(sum(wrhours)/sum(wght))^2)
@@ -322,7 +322,7 @@ GMM(\theta)=(\mathbb{E}Moments(\theta)-Moments)'(\mathbb{E}Moments(\theta)-Momen
 $$
 où $\mathbb{E}Moments(\theta)$ est la moyenne des moments simulés pour différents tirages des $\varepsilon_i$ et $Moments$ sont les moments des données. La procédure est donc de minimiser $GMM(\theta)$. Voici le code R associé:
 
-```{r}
+```{python}
 wrapi <- function(i,sim,alpha,theta){
     u <- as.numeric(umarginal(i,lincr,alpha,theta)[[3]])+as.numeric(erreur[[sim]][i,])*exp(theta[k+1]) # utilité pour chaque niveau d'heures travaillées
       # notez ici le changement de variable "exp(theta[6])" afin de s'assurer que l'écart-type soit toujours un chiffre positif.
@@ -351,13 +351,13 @@ distrhours <- function(theta){
 }
 ```
 
-```{r}
+```{python}
 summary(exp(as.numeric(Xmat%*%matrix(theta0[1:k],k,1))))
 ```
 
 Rappelez vous qu'un choc aléatoire est ajouté à $\alpha_i$ pour tenir compte de l'hétérogénéité inobservée. Une bonne pratique est de simuler les erreurs d'abord afin qu'elles soient les mêmes pour chaque évaluation des différentes valeurs de $\theta$ et ainsi éviter les problèmes numérique pour un nombre faible de simulations.
 
-```{r}
+```{python}
 ####### Dernières variables globales #######
 nsim <- 1
 erreur <- vector("list", nsim)
@@ -370,7 +370,7 @@ for (s in 1:nsim){
 
 On peut donc maintenant lancer la calibration.
 
-```{r}
+```{python}
 thetatry <- c(0.01239040, -0.01531411,  0.01137535,  0.01061802,  0.01987626,  0.01161269, 0.01602443)
 thetatry[4] <- thetatry[4]+0.01
 thetatry[k+2] <- thetatry[k+2]+1
@@ -382,7 +382,7 @@ thetatry[k+3] <- thetatry[k+3]+0.7
 
 On voit la valeur calibrée de theta dans $out\$ par$ et la valeur de la fonction objective dans $out\$ value$. On peut maintenant voir les moments simulés (moyenne sur *nsim* simulations) et les moments réels avec le code suivant:
 
-```{r}
+```{python}
 print(thetatry)
 print(simhours(thetatry))
 print(rmoments)
@@ -390,14 +390,14 @@ print(rmoments)
 
 On voit donc que la majorité des moments sont bien simulés, sauf que le modèle produit trop de variation dans les heures travaillées: l'écart-type des heures travaillées est très grand. Regardons la distribution réelle des heures travaillées.
 
-```{r}
+```{python}
 hist(rhours)
 print(max(rhours))
 ```
 
 On voit bien la masse importante juste avant 2000 heures de travail (i.e. 40 heures par semaine pendant 50 semaines), ce qui est intuitivement clair. Le code suivant nous donne un exemple de distribution des heures travaillées données par le modèle.
 
-```{r}
+```{python}
 simwork <- function(theta,sim){
     hours <- rep(0,n) # vecteur de zéros qui va contenir les heures travaillées simulées
     alpha <- exp(as.numeric(Xmat%*%matrix(theta[1:k],k,1))) # simulation des préférences alpha pour chaque individu
@@ -419,7 +419,7 @@ ou plus généralement en supposant une autre forme de fonction d'utilité. Il y
 
 Pour l'instant, la valeur estimée de $\theta$ nous donne une distribution des heures travaillées, ce qui nous permet de calculer les taxes, le bien-être et beaucoup d'autre variables.
 
-```{r}
+```{python}
 makestats <- function(theta){
    stats_var <- matrix(0,n,4)
    for (sim in 1:nsim){
@@ -448,25 +448,25 @@ Cela nous donne donc des données intéressantes à comparer. Vous pouvez aussi 
 
 On a donc une valeur de $\theta$ qui permet de répliquer les moments observés dans les données et de donner quelques statistiques descriptives de l'économie simulée. On peut donc maintenant commencer à faire des analyses de réformes. À titre d'exemple, ici, enlevons le programme d'aide sociale.
 
-```{r}
+```{python}
 as <- 0
 ```
 
 On observe donc la modification suivante aux TME:
 
-```{r}
+```{python}
 outtme <- tme(100,250000)
 ```
 
 On peut donc utiliser le modèle pour voir les changements anticipés sur les valeurs des moments.
 
-```{r}
+```{python}
 print(simhours(thetatry))
 ```
 
 On peut aussi voir les autres statistiques prédites:
 
-```{r}
+```{python}
 matstats_noas <- makestats(thetatry)
 colnames(matstats_noas) <- c("heures travaillées","utilité","revenu brut","taxes et transferts")
 summary(matstats_noas)
@@ -474,14 +474,14 @@ summary(matstats_noas)
 
 En particulier, ici on voit que tous se sont mis à travailler. C'est une conséquence directe de l'hypothèse sur l'utilité: sans aide sociale, ne pas travailler implique une consommation nulle et une utilité de -Infini. Les individus sont donc prêts à tout pour arriver à consommer. Remettons l'histograme des heures travaillées (simulées) sur le modèle avec assurance emploi:
 
-```{r}
+```{python}
 hist(matstats[,1])
 ```
 
-```{r}
+```{python}
 hist(matstats_noas[,1])
 ```
 
-```{r}
+```{python}
 
 ```
