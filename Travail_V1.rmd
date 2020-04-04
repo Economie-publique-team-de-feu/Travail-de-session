@@ -1,8 +1,9 @@
 ---
 title: "Travail V1"
 author: "Patricia Côté, Samy Gallienne, Élodie Gravel, Pascale Laveault-Allard"
-output: html_notebook
-
+output:
+  html_document:
+    df_print: paged
 jupyter:
   jupytext:
     formats: ipynb,Rmd
@@ -28,7 +29,7 @@ Dans ce travail, nous proposons un modèle de simulation de l'offre de travail a
 library(readr) # package pour lire les .csv
 library(compiler) # package pour le Just-in-time compilation
 enableJIT(3) # Option du package compiler
-set.seed(123) # résultats répliquables!
+set.seed(123) # Pour repliquer les resultats
 
 ```
 
@@ -38,23 +39,25 @@ set.seed(123) # résultats répliquables!
 
 ## Préférences de l'individu
 
-Nous supposons que les préférences des individus sont représentées par une fonction d'utilité de type log-log. La spécification des préférences de ce modèle est tirée  d'une étude de Clavet, Duclos et Lacroix (https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491) et adaptée en fonction des données disponibles:
+Nous supposons que les préférences des individus sont représentées par une fonction d'utilité de type log-log. La spécification des préférences de ce modèle est tirée d'une étude de Clavet, Duclos et Lacroix (https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491) et adaptée en fonction des données disponibles:
 
-$$ U(Y_i,L_i) = \alpha_{1i}\ln(\bar{L}-L) +\alpha_2\ln(\bar{L}-L)^2+ \alpha_3\ln(Y_i)+\alpha_4\ln(Y_i)^2 + \gamma_0(L=0) + \gamma_f(L\in[1750,2000])$$
+$$ U(C_i,L_i) = \alpha_{1i}\ln(\bar{L}-L_i) +\alpha_2\ln(\bar{L}-L_i)^2+ \alpha_3\ln(C_i)+\alpha_4\ln(C_i)^2 + \gamma_0(L_i=0) + \gamma_f(L_i\in[1750,2000])$$
 
-où $Y_i$ est le revenu disponible (la consommation), $L_i$ est la quantité de travail (annuelle, en heures) et $\bar{L}$ est le nombre maximal d'heures qu'un individu peut travailler annuellement. Ainsi spécifié, le terme $\bar{L}-L$ est le nombre d'heures annuelles de loisir consommé. 
+Où $C_i$ le niveau de consommation (le revenu disponible), $L_i$ est la quantité de travail (annuelle, en heures) et $\bar{L}$ est le nombre maximal d'heures qu'un individu peut travailler annuellement. Ainsi spécifié, le terme $\bar{L}-L_i$ est le nombre d'heures annuelles de loisir consommé par l'individu *i*. 
 
 Le coefficient $\gamma_0$ permet d'inclure des coûts fixes au travail alors que le coefficient $\gamma_f$ permet de mettre une rigidité au travail à temps plein, défini entre 35 et 40 heures par semaine.
 
 Toujours en s'inspirant de la proposition de Clavet, Duclos et Lacroix , l'hétérogénéité des préférences pour le loisir $\bar{L}-L$ est réflété dans le paramètre $\alpha_{1i}$:
 $$ \alpha_{1i} =\beta_0 + \beta_1\ln(age) + \beta_2\ln(age)^2 + \beta_3(prescolaire>0) + \beta_4~sexe + \beta_5~educ $$
 
-Pour coder la fonction d'utilité, la vecteur de coefficients est noté $\theta = (\alpha_2, \alpha_3, \alpha_4, \gamma_0, \gamma_f)$ et le coefficient $\alpha_{1i}$ est codé tel quel, car il a sa propre fonction basée sur les caractéristiques des individus. 
+Où *prescolaire>0* est une variable indicatrice égale à 1 si l'individu a au moins un enfant d'âge préscolaire à sa charge, *sexe* est une indicatrice égale à 1 si l'individu est une femme et *educ* réflète le niveau d'éducation. 
+
+Pour coder la fonction d'utilité, la vecteur de coefficients est noté $\theta = (\alpha_2, \alpha_3, \alpha_4, \gamma_0, \gamma_f)$ et le coefficient $\alpha_{1i}$ est codé dans une fonction séparée *alpha1*, qui elle dépend d'un vecteur de coefficients $\beta=(\beta_0, \beta_1, \beta_2, \beta_3, \beta_4, \beta_5)$.
 
 ```{r}
-Utilite <- function(i,L,alpha,beta,theta){
+Utilite <- function(i,L,beta,theta){
 # Fonction d'utilité du travail et de la consommation
-      util <- alpha1(i,beta)*log(Lmax-L)+ theta[1]*log((Lmax-L)^2)+  theta[2]*log(Y(i,L)) + theta[3]*log((Y(i,L))^2)+ theta[4]*as.numeric(L==0) + theta[5]*as.numeric(which(L>1750 & L<2000))
+      util <- alpha1(i,beta)*log(Lmax-L)+ theta[1]*log((Lmax-L)^2)+  theta[2]*log(Y(i,L)) + theta[3]*log((Y(i,L))^2)+ theta[4]*as.numeric(L==0) + theta[5]*as.numeric((L>1750 & L<2000))
   return(util)
 }
 
@@ -64,17 +67,17 @@ alpha1 <- function(i, beta){
 }
 ```
 
-L'utilité est donnée par une fonction qui prend comme argument l'individu *i*, le nombre d'heures travaillées *L* et le paramètre de caractéristiques individuelles *alpha1*. *Lmax* est le nombre d'heures travaillées maximales.
+L'utilité est donnée par une fonction qui prend comme argument l'individu *i*, le nombre d'heures travaillées *L* et le vecteur de coefficients individuels *beta* et le vecteur de paramètres *theta*. *Lmax* est le nombre d'heures travaillées maximales $\bar{L}$.
 
 ## Contrainte budgétaire
 
-La consommation (ou revenu disponible) est une fonction de l'individu *i* et du nombre travaillé et est donnée par la contrainte budgétaire:
+La consommation (ou revenu disponible) est donnée par la contrainte budgétaire qui dépend du salaire horaire de l'individu $w_i$, de ses heures travailles $L_i$ et de la fonction de taxation $t(\cdot)$:
 
 $$
-w_iL-t(w_iL_i)\geq Y_i
+w_iL_i-t(w_iL_i)\geq C_i
 $$
 
-qui sera saturée à l'optimum. La fonction de taxation $t(w_iL_i)$ est  une fonction non-linéaire du revenu de travail brut.  $w_i$ est le salaire horaire pour chaque individu *i*. Le code R associé à la contrainte budgétaire est donné par:
+qui sera saturée à l'optimum. La fonction de taxation $t(w_iL_i)$ est  une fonction non-linéaire du revenu de travail brut.  $w_i$ est le salaire horaire pour chaque individu *i*. Le code R associé à au revenut disponible, assumant que la contrainte budgétaire est serrée, est donné par:
 
 ```{r}
 Y <- function(i,L){
@@ -90,31 +93,38 @@ La consommation est une fonction de l'individu *i* (son salaire) et du nombre d'
 
 Pour maximiser l'utilité de l'individu, on peut substituer la contrainte budgétaire dans la fonction objectif:
 
-$$ U(Y_i,L_i) = \alpha_{1i}\ln(\bar{L}-L) +\alpha_2\ln(\bar{L}-L)^2+ \alpha_3\ln(w_iL_i-t(w_iL_i))+\alpha_4\ln(w_iL_i-t(w_iL_i))^2 + \gamma_0(L=0) + \gamma_f(L\in[1750,2000])$$
+$$ U(L_i) = \alpha_{1i}\ln(\bar{L}-L) +\alpha_2\ln(\bar{L}-L)^2+ \alpha_3\ln(w_iL_i-t(w_iL_i))+\alpha_4\ln(w_iL_i-t(w_iL_i))^2 + \gamma_0(L=0) + \gamma_f(L\in[1750,2000])$$
 
-En supposant que *L* est une variable continue et que $t(\cdot)$ est différentiable (et en supposant que $\gamma_0=\gamma_f=0$), on peut prendre les conditions de premier ordre et réécrire:
+En supposant que *L* est une variable continue, que $t(\cdot)$ est différentiable, et que $\gamma_0=\gamma_f=0$, on peut prendre les conditions de premier ordre et réécrire le taux maginal de substitution entre le loisir $\bar{L}-L$ et la consommation $Y_i$:
 
 $$
-\frac{\bar{L}-L}{Y_i }=\frac{\alpha_i}{w_i(1-t'(w_iL))}
+\frac{\bar{L}-L_i}{C_i}=\frac{\bar{L}-L_i}{w_iL_i-t(w_iL_i)}=\frac{\alpha_{1i}+2\alpha_2}{(\alpha_3+2\alpha_4)~w_i(1-t'(w_iL_i))}
 $$
 
-On voit donc que le $\alpha_i$ permet à deux individus ayant le même salaire horaire $w_i$ d'avoir des taux marginaux de substitution Consommation/Loisir différents.
+On voit donc que le $\alpha_{1i}$ permet à deux individus ayant le même salaire horaire $w_i$ d'avoir des taux marginaux de substitution entre le loisir et la consommation différents en fonctions de caractéristiques de ces individus. 
 
-Ici, on suppose que l'individu a le choix d'ajuster ses heures de travail de façon discrète (des heures entières). Puisque ce sont des heures annuelles, ce n'est pas une hypothèse très forte. La fonction suivante évalue l'utilité pour différents choix d'heure de travail:
+Cependant, nous supposons ici un modèle d'offre de travail à choix discrets, comme dans l'étude de Clavet, Duclos et Lacroix. En effet, les individus en réalité ne peuvent ajuster leurs heures de travail que de façon discrète (des heures entières). Puisque ce sont des heures annuelles, ce n'est pas une hypothèse très forte. La fonction suivante évalue l'utilité pour différents choix d'heure de travail:
 
 ```{r}
-umarginal <- function(i,incr,alpha,theta){
-  # calcule l'utilité pour i marginale par incréments de incr heures de travail
-  lsup <- seq(0,Lmax,by=incr) # vecteur des heures travaillées
-  util <- sapply(lsup,function(x) Utilite(i,x,alpha,theta)) # évalue l'utilité pour chaque niveau d'heures travaillées
-  util2 <- c(util[2:(length(util))],0) # décale le vecteur des utilités
-  deltautil <- util2-util # utilité marginale
+umarginal <- function(i,incr,beta,theta){
+# calcule l'utilite marginale de l'individu i par increments de incr heures de travail
+  lsup <- seq(0,Lmax,by=incr) # vecteur des heures travaillees
+  util <- sapply(lsup,function(x) Utilite(i,x,alpha,theta)) # evalue l'utilite pour chaque niveau d'heures travaillees
+  util2 <- c(util[2:(length(util))],0) # decale le vecteur des utilites
+  deltautil <- util2-util # utilite marginale
   return(list(lsup[1:length(lsup)-1],deltautil[1:length(lsup)-1],util[1:length(lsup)-1]))
 }
 ```
 
 
-La fonction demande l'individu *i*, le plus petit ajustement des heures annuelles *incr* ainsi que le vecteur de préférences individuelles *alpha*. La fonction retourne une liste de trois éléments. Premièrement, *lsup*, le vecteur des heures travaillées auxquelles la fonction est évaluée. Deuxièmement, *deltautil* qui est l'utilité marginale entre $L$ et $L+1$ heures travaillées. Troisièmement, *util* qui est l'utilité évaluée à chaque valer de *lsup*. 
+La fonction prend comme arguments l'individu *i*, la variation discrète annuelle des heures qu'il est possible de travailler *incr*, que le vecteur de préférences individuelles *beta* et le vecteur de paramètre de la fonction d'utilité *theta*. La fonction retourne une liste de trois éléments. Premièrement, *lsup*, le vecteur des heures travaillées auxquelles la fonction est évaluée. Deuxièmement, *deltautil* est l'utilité marginale entre $L$ et $L+1$ heures travaillées. Troisièmement, *util* est l'utilité évaluée à chaque valeur de *lsup*. Le nombres d'heures optimales travaillées *Loptimal* est simplement la valeur de *L* qui est associée à la plus grande utilité:
+
+```{r}
+Loptimal <- function(lsup, util){
+  position <- which(util==max(util)) #utilite maximale
+  return(lsup[position]) 
+}
+```
 
 
 
@@ -276,9 +286,9 @@ outtme <- tme(100,250000)
 ## Variables générales
 
 Les variables globales sont définies comme suit:
-* *Lmax* est le nombre maximal d'heures travaillées par année, soit 85 heures par semaine.
-* *weeks* est le nombre de semaines de travail par année.
-* *lincr* est le nombre minimal d'heures annuelles de travail que l'individu peut ajuster, soit des incréments de 5 heures par semaine.
+* *Lmax* est le nombre maximal d'heures qu'il est possible de travailler par année. Nous l'avons fixé à 4250 heures, soit 85 heures par semaine.
+* *weeks* est le nombre de semaines de travail par année, fuixé à 50.
+* *lincr* est le nombre minimal d'heures annuelles de travail que l'individu peut ajuster. Nous l'avons fixé à 250 heures par année, soit des incréments de 5 heures par semaine.
 ```{r}
 Lmax <- 4250
 weeks <- 50
@@ -288,6 +298,7 @@ lincr <- 250
 Avec la commande suivante, on trouve facilement le nombre d'heures travaillées pour *i=10*, pour le *alpha* déclaré au début du code, pouvant ajuster ses heures de travail par blocs de *lincr* heures annuellement.
 
 ```{r}
+k <-3
 theta0 <- rep(1,(k+3))*0.01 # valeur initial de theta: k+1=écart-type des erreurs, k+2=40h/sem, k+3=0h/sem
 alpha <- as.numeric(Xmat%*%matrix(theta0[1:4],4,1)) # valeur initiale de alpha
 vec_u <- umarginal(10,lincr,alpha,theta0)[[3]] # vecteur des utilités
