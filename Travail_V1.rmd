@@ -297,7 +297,7 @@ lincr <- 250
 
 Avec la commande suivante, on trouve facilement le nombre d'heures travaillées pour *i=10*, pour le *alpha* déclaré au début du code, pouvant ajuster ses heures de travail par blocs de *lincr* heures annuellement.
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 k <-3
 theta0 <- rep(1,(k+3))*0.01 # valeur initial de theta: k+1=écart-type des erreurs, k+2=40h/sem, k+3=0h/sem
 alpha <- as.numeric(Xmat%*%matrix(theta0[1:4],4,1)) # valeur initiale de alpha
@@ -317,8 +317,8 @@ La procédure décrite ici est celle de la Méthode des Moments Généralisés S
 $$\ln(\alpha_i)=\mathbf{x}_i\theta$$
 
 et on va aussi suppose que l'utilité est aléatoire:
-$$
-\hat{U}_i(C,L)=U_i(C,L)+\varepsilon_{i,L},$$
+$$\hat{U}_i(C,L)=U_i(C,L)+\varepsilon_{i,L},$$
+
 où $\varepsilon_{i,L}$ suit une loi normale de variance $\sigma^2$. 
 à modifier si on veut utiliser une loi Gumble
 
@@ -330,7 +330,7 @@ Par contre, notez qu'il y a plusieurs variables explicatives, donc il y a probab
 
 Le code suivant génère les moments associés.
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 rhours <- as.numeric(lfsqc$ATOTHRS)*weeks # nombre d'heures annuelles sur une base de 'weeks' semaines de travail
 wrhours <- rhours*wght
 rwse <-  sqrt((sum(wght*(rhours^2))/sum(wght))-(sum(wrhours)/sum(wght))^2)
@@ -358,7 +358,7 @@ GMM(\theta)=(\mathbb{E}Moments(\theta)-Moments)'(\mathbb{E}Moments(\theta)-Momen
 $$
 où $\mathbb{E}Moments(\theta)$ est la moyenne des moments simulés pour différents tirages des $\varepsilon_i$ et $Moments$ sont les moments des données. La procédure est donc de minimiser $GMM(\theta)$. Voici le code R associé:
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 wrapi <- function(i,sim,alpha,theta){
     u <- as.numeric(umarginal(i,lincr,alpha,theta)[[3]])+as.numeric(erreur[[sim]][i,])*exp(theta[k+1]) # utilité pour chaque niveau d'heures travaillées
       # notez ici le changement de variable "exp(theta[6])" afin de s'assurer que l'écart-type soit toujours un chiffre positif.
@@ -387,7 +387,7 @@ distrhours <- function(theta){
 }
 ```
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 summary(exp(as.numeric(Xmat%*%matrix(theta0[1:k],k,1))))
 ```
 
@@ -406,7 +406,7 @@ for (s in 1:nsim){
 
 On peut donc maintenant lancer la calibration.
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 thetatry <- c(0.01239040, -0.01531411,  0.01137535,  0.01061802,  0.01987626,  0.01161269, 0.01602443)
 thetatry[4] <- thetatry[4]+0.01
 thetatry[k+2] <- thetatry[k+2]+1
@@ -418,7 +418,7 @@ thetatry[k+3] <- thetatry[k+3]+0.7
 
 On voit la valeur calibrée de theta dans $out\$ par$ et la valeur de la fonction objective dans $out\$ value$. On peut maintenant voir les moments simulés (moyenne sur *nsim* simulations) et les moments réels avec le code suivant:
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 print(thetatry)
 print(simhours(thetatry))
 print(rmoments)
@@ -426,14 +426,14 @@ print(rmoments)
 
 On voit donc que la majorité des moments sont bien simulés, sauf que le modèle produit trop de variation dans les heures travaillées: l'écart-type des heures travaillées est très grand. Regardons la distribution réelle des heures travaillées.
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 hist(rhours)
 print(max(rhours))
 ```
 
 On voit bien la masse importante juste avant 2000 heures de travail (i.e. 40 heures par semaine pendant 50 semaines), ce qui est intuitivement clair. Le code suivant nous donne un exemple de distribution des heures travaillées données par le modèle.
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 simwork <- function(theta,sim){
     hours <- rep(0,n) # vecteur de zéros qui va contenir les heures travaillées simulées
     alpha <- exp(as.numeric(Xmat%*%matrix(theta[1:k],k,1))) # simulation des préférences alpha pour chaque individu
@@ -451,7 +451,7 @@ hist(simwork(thetatry,1))
 
 Pour l'instant, la valeur estimée de $\theta$ nous donne une distribution des heures travaillées, ce qui nous permet de calculer les taxes, le bien-être et beaucoup d'autre variables.
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 makestats <- function(theta){
    stats_var <- matrix(0,n,4)
    for (sim in 1:nsim){
@@ -488,20 +488,20 @@ as <- 0
 
 ### Modification des TMEI:
 
-```{r}
+```{r }
 outtme <- tme(100,250000)
 ```
 
 ## Simulations du modèle d'offre de travail
 On peut donc utiliser le modèle pour voir les changements anticipés sur les valeurs des moments.
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 print(simhours(thetatry))
 ```
 
 On peut aussi voir les autres statistiques prédites:
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 matstats_noas <- makestats(thetatry)
 colnames(matstats_noas) <- c("heures travaillées","utilité","revenu brut","taxes et transferts")
 summary(matstats_noas)
@@ -509,11 +509,11 @@ summary(matstats_noas)
 
 En particulier, ici on voit que tous se sont mis à travailler. C'est une conséquence directe de l'hypothèse sur l'utilité: sans aide sociale, ne pas travailler implique une consommation nulle et une utilité de -Infini. Les individus sont donc prêts à tout pour arriver à consommer. Remettons l'histograme des heures travaillées (simulées) sur le modèle avec assurance emploi:
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 hist(matstats[,1])
 ```
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 hist(matstats_noas[,1])
 ```
 
