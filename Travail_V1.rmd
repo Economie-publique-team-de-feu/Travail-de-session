@@ -181,26 +181,51 @@ Nous allons aussi utiliser les taux de taxe et paliers suivants:
   pp4 <- 0.2575
 
   # seuils de taxation QC
-  p1 <- 15012
-  p2 <- 43055
-  p3 <- 86105
-  p4 <- 104765
+  p1 <- 15532
+  p2 <- 44545
+  p3 <- 89080
+  p4 <- 108390
 
   # taux de taxe CAN
-  pt1 <- 0.1253
-  pt2 <- 0.1712
-  pt3 <- 0.2171
-  pt4 <- 0.2422
-  pt5 <- 0.2756
+  pt1 <- 0.15
+  pt2 <- 0.2050
+  pt3 <- 0.26
+  pt4 <- 0.29
+  pt5 <- 0.33
 
   # seuils de taxation CAN
-  f1 <- 11809
-  f2 <- 46605
-  f3 <- 93208
-  f4 <- 144489
-  f5 <- 205842
+  f1 <- 12298
+  f2 <- 48535
+  f3 <- 97069
+  f4 <- 150473
+  f5 <- 214368
 
   as <- 1 # =1 programme aide sociale, =0 si enlève aide sociale
+  
+  #Charges sociale travailleur
+  ae <- 0.012
+  rrq <- 0.057
+  rqape <- 0.0049
+  rqapa <- 0.0088
+  
+  #montant maximum perçu par travailleur
+  aem <- 650.4
+  rrqm <- 3345.9
+  rqapem <- 387.79
+  rqapam <- 689.23
+  
+  #Charges sociale employeur
+  eae <- 0,0168
+  errq <- 0.057
+  erqap <- 0.0069
+  fss <- 0.025
+  cnesst <- 0.0192
+  
+  #montant maximum perçu par travailleur pour l'employeur
+  eaem <- 910.56
+  errqm <- 3345.9
+  erqapm <- 543.22
+  cnesstm <- 1507.2
 ```
 
 ## Transferts
