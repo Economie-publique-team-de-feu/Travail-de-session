@@ -201,31 +201,6 @@ Nous allons aussi utiliser les taux de taxe et paliers suivants:
   f5 <- 214368
 
   as <- 1 # =1 programme aide sociale, =0 si enlève aide sociale
-  
-  #Charges sociale travailleur
-  ae <- 0.012
-  rrq <- 0.057
-  rqape <- 0.0049
-  rqapa <- 0.0088
-  
-  #montant maximum perçu par travailleur
-  aem <- 650.4
-  rrqm <- 3345.9
-  rqapem <- 387.79
-  rqapam <- 689.23
-  
-  #Charges sociale employeur
-  eae <- 0,0168
-  errq <- 0.057
-  erqap <- 0.0069
-  fss <- 0.025
-  cnesst <- 0.0192
-  
-  #montant maximum perçu par travailleur pour l'employeur
-  eaem <- 910.56
-  errqm <- 3345.9
-  erqapm <- 543.22
-  cnesstm <- 1507.2
 ```
 
 ## Transferts
@@ -275,9 +250,9 @@ itax <- function(inc){
     prv <- pp1*(p2-p1) + pp2*(p3-p2) + pp3*(p4-p3) + pp4*(inc-p4)
     fed <- pt1*(f2-f1) + pt2*(f3-f2) + pt3*(f4-f3) + pt4*(f5-f4) + pt5*(inc-f5)
   }
-  aemploi <- min(51700,inc)*0.013
-  rrq <- 0 #max(min(55900,inc)-3500,0)*0.054
-  rqap <- min(74000,inc)*0.00548
+  aemploi <- min(54200,inc)*0.012
+  rrq <- 0 #max(min(58700,inc)-3500,0)*0.057
+  rqap <- min(78500,inc)*0.00494
   
   asociale <- max(648*12 - max(inc-200*12,0),0)*as
   tax <-  prv + fed + aemploi + rrq + rqap - asociale
