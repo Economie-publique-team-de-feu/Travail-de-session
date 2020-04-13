@@ -18,7 +18,7 @@ jupyter:
     name: ir
 ---
 
-Dans ce travail, nous proposons un modèle de simulation de l'offre de travail au Québec calibré avec les données du Labour Force Survey pour la province de Québec. Nous utilisons ensuite ce modèle pour simuler l'effet de différentes réformes de la fiscalité québécoise sur l'offre de travail, le revenu des individus et la dispersion des revenus. Les trois réformes étudiées sont :
+Dans ce travail, nous proposons un modèle de simulation de l'offre de travail au Québec calibré avec les données du Enquête sur la population active (EPA) pour la province de Québec. Nous utilisons ensuite ce modèle pour simuler l'effet de différentes réformes de la fiscalité québécoise sur l'offre de travail, le revenu des individus et la dispersion des revenus. Les trois réformes étudiées sont :
 1. L'instauration d'un revenu minimum garanti
 2. La mise en place d'une prime à l'emploi
 3. Une combinaison des deux réformes 
@@ -128,9 +128,9 @@ Loptimal <- function(lsup, util){
 
 
 
-# 2. Données du *Labour Force Survey*
+# 2. Données de l'Enquête sur la population active
 
-Pour cette analyse, nous allons utiliser les données du *Labour Force Survey* pour la province de Québec (*PROV=24*). Afin de ne pas inclure les effets exogènes sur l'économie dus au COVID-19, nous avons téléchargé les données de février 2020. 
+Pour cette analyse, nous allons utiliser les données de l'EPA pour la province de Québec (*PROV=24*). Afin de ne pas inclure les effets exogènes sur l'économie dus au COVID-19, nous avons téléchargé les données de février 2020. 
 - La commande *complete.case* enlève les valeurs manquantes
 - *n* est le nombre d'individus
 - *wage* est le salaire horaire habituel déclaré pour chaque individu
@@ -147,13 +147,19 @@ lfs <- read_csv("./LFS-71M0001-E-2020-February_F1.csv", col_types = cols()) # im
 #lfs <- ds
 lfsqc <- lfs[lfs$PROV==24,] # garde uniquement le Québec
 rm(lfs) # supprime la base initiale de la mémoire
-lfsqc <- lfsqc[,c("AGE_12","SEX","EDUC","ATOTHRS","HRLYEARN","FINALWT")] # garde seulement certaines variables
+lfsqc <- lfsqc[,c("AGE_12","SEX","EDUC","ATOTHRS","HRLYEARN","EFAMTYPE","SCHOOLN","AGYOWNK","FINALWT")] # garde seulement certaines variables
 n0 <- nrow(lfsqc) # garde le nombre d'observations initiales
 missingweight <- c(lfsqc[!complete.cases(lfsqc),"FINALWT"])[[1]] #garde les poids des individus qui seront enlevés
 lfsqc <- lfsqc[complete.cases(lfsqc), ] # enlève les observations avec des variables manquantes
 lfsqc <- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # sous-échantillonage pour les tests (à commenter pour l'analyse finale)
 n <- nrow(lfsqc) # nombre d'individus dans la base
 wage <- as.numeric(lfsqc$HRLYEARN) # salaire horaire
+prescolaire <- ifelse(lfsqc$AGYOWNK == 1, 1, 0) # enfant le plus jeune à moins de 6 ans: 1= oui, 2=non
+menage <- ifelse(lfsqc$EFAMTYPE == 18, "autre", ifelse(lfsqc$EFAMTYPE > 13 & lfsqc$EFAMTYPE < 18, "monoparental", 
+  ifelse(lfsqc$EFAMTYPE > 1 & lfsqc$EFAMTYPE < 14, "couple", ifelse(lfsqc$EFAMTYPE == 1, 1, lfsqc$EFAMTYPE))))
+# classification du type de ménage
+enfant <- ifelse(lfsqc$EFAMTYPE == 3 | lfsqc$EFAMTYPE == 6 | lfsqc$EFAMTYPE == 9 | lfsqc$EFAMTYPE == 12 | 
+  lfsqc$EFAMTYPE == 14 | lfsqc$EFAMTYPE == 16, 1, 0) # 1 = ménage avec enfant = 1, sans enfant = 0
 Xmat <- matrix(c(lfsqc$AGE_12,lfsqc$SEX,lfsqc$EDUC),n,3) # matrice des variables explicatives
 Xmat <- matrix(c(rep(1,n),Xmat),n,4) # ajoute une constante
 k <- 4 # nombre de variables explicatives (incluant la constante)
@@ -310,7 +316,7 @@ Ici, notre individu *i=10* travaille très peu! C'est esssentiellement en raison
 
 ## Méthode des moments généralisés simulés
 
-Pour régler cette situation, nous allons utiliser les données sur les heures travaillées disponibles dans la *Labour Force Survey*.
+Pour régler cette situation, nous allons utiliser les données sur les heures travaillées disponibles dans l'EPA.
 
 La procédure décrite ici est celle de la Méthode des Moments Généralisés Simulés. Essentiellement, on n'observe pas l'hétérogénéité des préférences des individus (i.e. leur substitution Consommation/Loisir). Tel que décrit plus haut, on peut résumer cette information par $\alpha_i$. Ici, on va supposer une forme paramétrique:
 
