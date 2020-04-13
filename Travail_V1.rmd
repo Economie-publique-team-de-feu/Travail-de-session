@@ -188,29 +188,57 @@ Nous allons aussi utiliser les taux de taxe et paliers suivants:
   pp4 <- 0.2575
 
   # seuils de taxation QC
-  p1 <- 15012
-  p2 <- 43055
-  p3 <- 86105
-  p4 <- 104765
+  p1 <- 15532
+  p2 <- 44545
+  p3 <- 89080
+  p4 <- 108390
 
   # taux de taxe CAN
-  pt1 <- 0.1253
-  pt2 <- 0.1712
-  pt3 <- 0.2171
-  pt4 <- 0.2422
-  pt5 <- 0.2756
+  pt1 <- 0.15
+  pt2 <- 0.2050
+  pt3 <- 0.26
+  pt4 <- 0.29
+  pt5 <- 0.33
 
   # seuils de taxation CAN
-  f1 <- 11809
-  f2 <- 46605
-  f3 <- 93208
-  f4 <- 144489
-  f5 <- 205842
+  f1 <- 12298
+  f2 <- 48535
+  f3 <- 97069
+  f4 <- 150473
+  f5 <- 214368
 
   as <- 1 # =1 programme aide sociale, =0 si enlève aide sociale
 ```
 
 ## Transferts
+```{r}
+#Crédit TPS-TVH
+ctps
+ctc
+ctfm
+ctce
+
+#Prime au travail maximal
+if(2400<inc<19456) ptps <- 914.11 else ptps <- 0
+if(3600<inc<30217) ptc <- 1426.90 else ptc <- 0
+if (2400<inc<35680) ptfm <- 2539.2 else ptfm <- 0
+if (3600<inc<49044) ptce <- 3303 else ptce <- 0
+
+#Allocation canadienne pour les trvailleurs
+
+
+#Allocation canadienne pour enfants
+
+
+#Allocation famille
+
+
+#Crédit solidarité
+if(inc<35400) csps <- 718 else csps <- min(718,max(((inc-35400)*0.06)/12),ctps))
+if(inc<35400) csc <- 841 else csc <- min(841, max(((inc-35400)*0.06)/12),ctc))
+if(inc<35400) csfm <- 996 else csfm <- min(996, max(((inc-35400)*0.06)/12),ctfm))
+if(inc<35400) csce <-1119 else csce <- min(1119, max(((inc-35400)*0.06)/12),ctce))
+```
 
 ## Calcul du revenu net
 ```{r}
@@ -257,11 +285,11 @@ itax <- function(inc){
     prv <- pp1*(p2-p1) + pp2*(p3-p2) + pp3*(p4-p3) + pp4*(inc-p4)
     fed <- pt1*(f2-f1) + pt2*(f3-f2) + pt3*(f4-f3) + pt4*(f5-f4) + pt5*(inc-f5)
   }
-  aemploi <- min(51700,inc)*0.013
-  rrq <- 0 #max(min(55900,inc)-3500,0)*0.054
-  rqap <- min(74000,inc)*0.00548
+  aemploi <- min(54200,inc)*0.012
+  rrq <- 0 #max(min(58700,inc)-3500,0)*0.057
+  rqap <- min(78500,inc)*0.00494
   
-  asociale <- max(648*12 - max(inc-200*12,0),0)*as
+  asociale <- max(690*12 - max(inc-200*12,0),0)*as
   tax <-  prv + fed + aemploi + rrq + rqap - asociale
   return(c(tax,prv,fed,aemploi,rrq,rqap,asociale))
 }
