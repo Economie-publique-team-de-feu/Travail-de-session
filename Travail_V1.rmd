@@ -18,9 +18,12 @@ jupyter:
     name: ir
 ---
 
-Dans ce travail, nous proposons un modèle de simulation de l'offre de travail au Québec calibré avec les données du Enquête sur la population active (EPA) pour la province de Québec. Nous utilisons ensuite ce modèle pour simuler l'effet de différentes réformes de la fiscalité québécoise sur l'offre de travail, le revenu des individus et la dispersion des revenus. Les trois réformes étudiées sont :
-1. L'instauration d'un revenu minimum garanti
-2. La mise en place d'une prime à l'emploi
+Dans ce travail, nous proposons des ajustements au modèle de simulation de l'offre de travail au Québec à partir d'une étude publiée par des chercheurs de l'Université Laval en 2013. Le modèle est calibré avec les données du Labour Force Survey pour la province de Québec. Nous modélisons également les règles fiscales québécoises pour inclure les principaux transferts provinciaux et fédéraux. Nous utilisons ensuite ce modèle pour simuler l'effet de différentes réformes de la fiscalité québécoise sur l'offre de travail, le revenu des individus et la dispersion des revenus. Les trois réformes étudiées sont :
+
+1. L'instauration d'un revenu minimum garanti 
+
+2. La mise en place d'une prime à l'emploi 
+
 3. Une combinaison des deux réformes 
 
 Comme mentionné, les effets de ces réformes seront comparés sur la base de l'offre de travail, de la distribution des revenus dans la société et, si le temps et les données nous le permettent, l'effet en bref sur les finances publiques.
@@ -172,15 +175,22 @@ hist(Lopt,
 
 Dans cet exemple, les individus ne peuvent pas travailler 0 heures même si la fonction d'utilité est bonifiée quand *L=0* car *ln(0)* n'est pas défini. Les heures simulées dépendent fortement des paramères arbitraires postulés. Dans ce cas hypothétique, nous avons posé que tous les intrants de la fonction d'utilité ont un effet égal à un, sauf l'âge et le fait d'être une femme qui diminuent la préférence pour le loisir. La modification de ces coefficients affecte la distribution des heures de travail simulée dans cette cohorte.  
 
-# 2. Données de l'Enquête sur la population active
+# 2. Données du *Labour Force Survey*
 
-Pour cette analyse, nous allons utiliser les données de l'EPA pour la province de Québec (*PROV=24*). Afin de ne pas inclure les effets exogènes sur l'économie dus au COVID-19, nous avons téléchargé les données de février 2020. 
-- La commande *complete.case* enlève les valeurs manquantes
-- *n* est le nombre d'individus
-- *wage* est le salaire horaire habituel déclaré pour chaque individu
-- *Xmat* est la matrice des characteristiques individuelles
-- *theta* est un vecteur de paramètres à estimer
-- *alpha* est le vecteur (impliqué par *theta*) des préférences individuelles.
+Pour cette analyse, nous allons utiliser les données du *Labour Force Survey* pour la province de Québec (*PROV=24*). Afin de ne pas inclure les effets exogènes sur l'économie dus au COVID-19, nous avons téléchargé les données de février 2020. 
+
+Voici une table détaillant les variables extraites:
+
+|Nom de la variable *LFS*|Description|Nom abrégé|
+|-|-|-|
+|AGE_12|||
+|SEX|||
+|EDUC| ||
+|ATOTHRS|||
+|HRLYEARN| ||
+|FINALWT|||
+(à compléter...)
+
 
 
 ## Chargement des données
@@ -192,19 +202,13 @@ lfs <- read_csv("./LFS-71M0001-E-2020-February_F1.csv", col_types = cols()) # im
 #lfs <- ds
 lfsqc <- lfs[lfs$PROV==24,] # garde uniquement le Québec
 rm(lfs) # supprime la base initiale de la mémoire
-lfsqc <- lfsqc[,c("AGE_12","SEX","EDUC","ATOTHRS","HRLYEARN","EFAMTYPE","SCHOOLN","AGYOWNK","FINALWT")] # garde seulement certaines variables
+lfsqc <- lfsqc[,c("AGE_12","SEX","EDUC","ATOTHRS","HRLYEARN","FINALWT")] # garde seulement certaines variables
 n0 <- nrow(lfsqc) # garde le nombre d'observations initiales
 missingweight <- c(lfsqc[!complete.cases(lfsqc),"FINALWT"])[[1]] #garde les poids des individus qui seront enlevés
 lfsqc <- lfsqc[complete.cases(lfsqc), ] # enlève les observations avec des variables manquantes
 lfsqc <- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # sous-échantillonage pour les tests (à commenter pour l'analyse finale)
 n <- nrow(lfsqc) # nombre d'individus dans la base
 wage <- as.numeric(lfsqc$HRLYEARN) # salaire horaire
-prescolaire <- ifelse(lfsqc$AGYOWNK == 1, 1, 0) # enfant le plus jeune à moins de 6 ans: 1= oui, 2=non
-menage <- ifelse(lfsqc$EFAMTYPE == 18, "autre", ifelse(lfsqc$EFAMTYPE > 13 & lfsqc$EFAMTYPE < 18, "monoparental", 
-  ifelse(lfsqc$EFAMTYPE > 1 & lfsqc$EFAMTYPE < 14, "couple", ifelse(lfsqc$EFAMTYPE == 1, 1, lfsqc$EFAMTYPE))))
-# classification du type de ménage
-enfant <- ifelse(lfsqc$EFAMTYPE == 3 | lfsqc$EFAMTYPE == 6 | lfsqc$EFAMTYPE == 9 | lfsqc$EFAMTYPE == 12 | 
-  lfsqc$EFAMTYPE == 14 | lfsqc$EFAMTYPE == 16, 1, 0) # 1 = ménage avec enfant = 1, sans enfant = 0
 Xmat <- matrix(c(lfsqc$AGE_12,lfsqc$SEX,lfsqc$EDUC),n,3) # matrice des variables explicatives
 Xmat <- matrix(c(rep(1,n),Xmat),n,4) # ajoute une constante
 k <- 4 # nombre de variables explicatives (incluant la constante)
@@ -278,23 +282,24 @@ transferts <- function(inc){
   PrimeTravail<-ptps+ptc+ptfm+ptce
   
   #Allocation canadienne pour les trvailleurs
-  if (inc<23458) actps <- min(2280, ((inc-2400)*0.274)-((inc-12060)*0.20)) else actps <- 0
-  if (inc<36308) actc <- min(3558, ((inc-3600)*0.274)-((inc-18520)*0.20)) else actc <- 0
-  if (inc<18305) actfm <- min(1248, ((inc-2400)*0.15)-((inc-12065)*0.20)) else actfm <- 0
-  if (inc<27629) actce <- min(1818, ((inc-3600)*0.14)-((inc-18540)*0.20)) else actce <- 0
+  if (inc<23458) (if (inc>12060) actps <- min(2280, ((inc-2400)*0.274)-((inc-12060)*0.20)) else actps <-2280) else actps <- 0
+  if (inc<36308) (if (inc>18520) actc <- min(3558, ((inc-3600)*0.274)-((inc-18520)*0.20)) else actc <-3558) else actc <- 0
+  if (inc<18305) (if (inc>12065) actfm <- min(1248, ((inc-2400)*0.15)-((inc-12065)*0.20)) else actfm <-1248) else actfm <- 0
+  if (inc<27629) (if (inc>18540) actce <- min(1818, ((inc-3600)*0.14)-((inc-18540)*0.20)) else actce <-1818) else actce <- 0
   
   
   #Allocation canadienne pour enfants
   
   
   #Allocation famille
-  
+  if (inc<125592) (if (inc>49842) afce <- max(1000, min(2515,2515-(inc-49842)*0.04)) else afce <- 2515) else afce <- 0
+  if (inc<87381) (if (inc>36256) affm <- max(1352, min(3397, 3397-(inc-36256)*0.04)) else affm <- 3397) else affm <- 0
   
   #Crédit solidarité
-  if(inc<35400) csps <- 718 else csps <- min(718,max(((inc-35400)*0.06)/12),ctps)
-  if(inc<35400) csc <- 841 else csc <- min(841, max(((inc-35400)*0.06)/12),ctc)
-  if(inc<35400) csfm <- 996 else csfm <- min(996, max(((inc-35400)*0.06)/12),ctfm)
-  if(inc<35400) csce <-1119 else csce <- min(1119, max(((inc-35400)*0.06)/12),ctce)
+  if(inc<35400) csps <- 718 else csps <- min(718,max(718-((inc-35400)*0.06)/12),ctps)
+  if(inc<35400) csc <- 841 else csc <- min(841, max(841-((inc-35400)*0.06)/12),ctc)
+  if(inc<35400) csfm <- 996 else csfm <- min(996, max(996-((inc-35400)*0.06)/12),ctfm)
+  if(inc<35400) csce <-1119 else csce <- min(1119, max(1119-((inc-35400)*0.06)/12),ctce)
   #total CS
   CreditSolidarite<-csps+csc+csfm+csce
 
@@ -398,7 +403,6 @@ lincr <- 250
 
 Pour calibrer le modèle d'offre de travail, nous allons utiliser les données sur les heures travaillées disponibles dans la *Labour Force Survey*. Comme il y a toujours une variabilité dans les données qui ne peut être captée par le modèle théorique, nous ajoutons des processus aléatoires au modèle spécifié plus haut. Pour ce faire, nous supposons des caractéristiques inobservables des individus qui rendent aléatoire la fonction de préférence pour le loisir:
 
-Pour régler cette situation, nous allons utiliser les données sur les heures travaillées disponibles dans l'EPA.
 $$\hat{\alpha_{1i}} = \alpha_{1i}+v$$
 où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance $\sigma^2$.
 
