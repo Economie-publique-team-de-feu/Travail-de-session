@@ -282,6 +282,10 @@ transferts <- function(inc){
   PrimeTravail<-ptps+ptc+ptfm+ptce
   
   #Allocation canadienne pour les trvailleurs
+  if (inc<23458) actps <- min(2280, ((inc-2400)*0.274)-((inc-12060)*0.20)) else actps <- 0
+  if (inc<36308) actc <- min(3558, ((inc-3600)*0.274)-((inc-18520)*0.20)) else actc <- 0
+  if (inc<18305) actfm <- min(1248, ((inc-2400)*0.15)-((inc-12065)*0.20)) else actfm <- 0
+  if (inc<27629) actce <- min(1818, ((inc-3600)*0.14)-((inc-18540)*0.20)) else actce <- 0
   
   
   #Allocation canadienne pour enfants
