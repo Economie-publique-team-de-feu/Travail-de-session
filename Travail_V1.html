@@ -1639,26 +1639,7 @@ summary {
 </div>
 
 
-<p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD Dans ce travail, nous proposons un modèle de simulation de l’offre de travail au Québec calibré avec les données du Enquête sur la population active (EPA) pour la province de Québec. Nous utilisons ensuite ce modèle pour simuler l’effet de différentes réformes de la fiscalité québécoise sur l’offre de travail, le revenu des individus et la dispersion des revenus. Les trois réformes étudiées sont : 1. L’instauration d’un revenu minimum garanti 2. La mise en place d’une prime à l’emploi ======= Dans ce travail, nous proposons des ajustements au modèle de simulation de l’offre de travail au Québec à partir d’une étude publiée par des chercheurs de l’Université Laval en 2013. Le modèle est calibré avec les données du Labour Force Survey pour la province de Québec. Nous modélisons également les règles fiscales québécoises pour inclure les principaux transferts provinciaux et fédéraux. Nous utilisons ensuite ce modèle pour simuler l’effet de différentes réformes de la fiscalité québécoise sur l’offre de travail, le revenu des individus et la dispersion des revenus. Les trois réformes étudiées sont :</p>
-<ol style="list-style-type: decimal">
-<li><p>L’instauration d’un revenu minimum garanti</p></li>
-<li><p>La mise en place d’une prime à l’emploi</p></li>
-</ol>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<p>8f0486c4b111ef8aaf920a70f7b211c9f17982a6 3. Une combinaison des deux réformes</p>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
+<p>Dans ce travail, nous proposons un modèle de simulation de l’offre de travail au Québec calibré avec les données du Enquête sur la population active (EPA) pour la province de Québec. Nous utilisons ensuite ce modèle pour simuler l’effet de différentes réformes de la fiscalité québécoise sur l’offre de travail, le revenu des individus et la dispersion des revenus. Les trois réformes étudiées sont : 1. L’instauration d’un revenu minimum garanti 2. La mise en place d’une prime à l’emploi 3. Une combinaison des deux réformes</p>
 <p>Comme mentionné, les effets de ces réformes seront comparés sur la base de l’offre de travail, de la distribution des revenus dans la société et, si le temps et les données nous le permettent, l’effet en bref sur les finances publiques.</p>
 <div id="chargement-des-librairies" class="section level1">
 <h1>0. Chargement des librairies</h1>
@@ -1770,65 +1751,7 @@ hist(Lopt,
 </div>
 <div id="données-de-lenquête-sur-la-population-active" class="section level1">
 <h1>2. Données de l’Enquête sur la population active</h1>
-<p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD Pour cette analyse, nous allons utiliser les données de l’EPA pour la province de Québec (<em>PROV=24</em>). Afin de ne pas inclure les effets exogènes sur l’économie dus au COVID-19, nous avons téléchargé les données de février 2020. - La commande <em>complete.case</em> enlève les valeurs manquantes - <em>n</em> est le nombre d’individus - <em>wage</em> est le salaire horaire habituel déclaré pour chaque individu - <em>Xmat</em> est la matrice des characteristiques individuelles - <em>theta</em> est un vecteur de paramètres à estimer - <em>alpha</em> est le vecteur (impliqué par <em>theta</em>) des préférences individuelles. ======= Pour cette analyse, nous allons utiliser les données du <em>Labour Force Survey</em> pour la province de Québec (<em>PROV=24</em>). Afin de ne pas inclure les effets exogènes sur l’économie dus au COVID-19, nous avons téléchargé les données de février 2020.</p>
-<p>Voici une table détaillant les variables extraites:</p>
-<table>
-<thead>
-<tr class="header">
-<th>Nom de la variable <em>LFS</em></th>
-<th>Description</th>
-<th>Nom abrégé</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>AGE_12</td>
-<td></td>
-<td></td>
-</tr>
-<tr class="even">
-<td>SEX</td>
-<td></td>
-<td></td>
-</tr>
-<tr class="odd">
-<td>EDUC</td>
-<td></td>
-<td></td>
-</tr>
-<tr class="even">
-<td>ATOTHRS</td>
-<td></td>
-<td></td>
-</tr>
-<tr class="odd">
-<td>HRLYEARN</td>
-<td></td>
-<td></td>
-</tr>
-<tr class="even">
-<td>FINALWT</td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<p>(à compléter…)</p>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<p>8f0486c4b111ef8aaf920a70f7b211c9f17982a6</p>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
+<p>Pour cette analyse, nous allons utiliser les données de l’EPA pour la province de Québec (<em>PROV=24</em>). Afin de ne pas inclure les effets exogènes sur l’économie dus au COVID-19, nous avons téléchargé les données de février 2020. - La commande <em>complete.case</em> enlève les valeurs manquantes - <em>n</em> est le nombre d’individus - <em>wage</em> est le salaire horaire habituel déclaré pour chaque individu - <em>Xmat</em> est la matrice des characteristiques individuelles - <em>theta</em> est un vecteur de paramètres à estimer - <em>alpha</em> est le vecteur (impliqué par <em>theta</em>) des préférences individuelles.</p>
 <div id="chargement-des-données" class="section level2">
 <h2>Chargement des données</h2>
 <p>Pour mettre en forme les données, nous avons utilisé la commande <em>complete.cases</em> pour enlever les valeurs manquantes. Nous avons également noté <em>n</em> le nombre d’individus.</p>
@@ -2031,7 +1954,7 @@ lincr &lt;- 250</code></pre>
 <div id="processus-aléatoires" class="section level2">
 <h2>Processus aléatoires</h2>
 <p>Pour calibrer le modèle d’offre de travail, nous allons utiliser les données sur les heures travaillées disponibles dans la <em>Labour Force Survey</em>. Comme il y a toujours une variabilité dans les données qui ne peut être captée par le modèle théorique, nous ajoutons des processus aléatoires au modèle spécifié plus haut. Pour ce faire, nous supposons des caractéristiques inobservables des individus qui rendent aléatoire la fonction de préférence pour le loisir:</p>
-<p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD Pour régler cette situation, nous allons utiliser les données sur les heures travaillées disponibles dans l’EPA. ======= <span class="math display">\[\hat{\alpha_{1i}} = \alpha_{1i}+v\]</span> où <em>v</em> est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance <span class="math inline">\(\sigma^2\)</span>. &gt;&gt;&gt;&gt;&gt;&gt;&gt; 8f0486c4b111ef8aaf920a70f7b211c9f17982a6</p>
+<p>Pour régler cette situation, nous allons utiliser les données sur les heures travaillées disponibles dans l’EPA. <span class="math display">\[\hat{\alpha_{1i}} = \alpha_{1i}+v\]</span> où <em>v</em> est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance <span class="math inline">\(\sigma^2\)</span>.</p>
 <p>Nous supposons aussi que la fonction d’utilité elle-même a un terme d’erreur <span class="math inline">\(\xi_i\)</span>:</p>
 <p><span class="math display">\[\hat{U}_i(C,L)=U_i(C,L)+\xi_i,\]</span></p>
 <p>où <span class="math inline">\(\xi_i\)</span> est une loi d’extremum généralisée de type I (Loi de Gumbel). L’utilisation de cette règle de distribution est motivée dans l’article de Clavet, Duclos et Lacroix et repose sur la sur-représentation de valeurs extrèmes dans les données observées sur l’offre de travail.</p>
