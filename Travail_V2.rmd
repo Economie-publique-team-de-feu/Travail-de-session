@@ -289,6 +289,18 @@ transferts <- function(inc){
   
   
   #Allocation canadienne pour enfants
+  aceps<-0
+  acec<-0
+  #Enfant de moins de 6 ans
+  if (inc<199183) ((if (inc>31711 & inc<68708) acece6 <- min(6765, (6765-(inc-31711)*0.07) else acece6 <-6765) (if (inc>68708) acece6 <- min(4175.21, (4175.21-(inc-68708)*0.032) else acece6 <-4175.21) else acece6 <-0
+  if (inc<199183) ((if (inc>31711 & inc<68708) acefm6 <- min(6765, (6765-(inc-31711)*0.07) else acefm6 <-6765) (if (inc>68708) acefm6 <- min(4175.21, (4175.21-(inc-68708)*0.032) else acefm6 <-4175.21) else acefm6 <-0
+  
+  #Enfant de 6 à 17 ans
+  if (inc<166152) ((if (inc>31711 & inc<68708) acece17 <- min(5708, (5708-(inc-31711)*0.07) else acece17 <-5708) (if (inc>68708) acece17 <- min(3118.21, (3118.21-(inc-68708)*0.032) else acece17 <-3118.21) else acece17 <-0
+  if (inc<166152) ((if (inc>31711 & inc<68708) acefm17 <- min(5708, (5708-(inc-31711)*0.07) else acefm17 <-5708) (if (inc>68708) acefm17 <- min(3118.21, (3118.21-(inc-68708)*0.032) else acefm17 <-3118.21) else acefm17 <-0
+  
+  #Aucune distinction entre famille monoparentale et couple
+  #Un seul des parents reçoit l'allocation, généralement la femme.
   
   
   #Allocation famille
