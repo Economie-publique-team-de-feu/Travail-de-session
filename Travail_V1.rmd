@@ -282,23 +282,24 @@ transferts <- function(inc){
   PrimeTravail<-ptps+ptc+ptfm+ptce
   
   #Allocation canadienne pour les trvailleurs
-  if (inc<23458) actps <- min(2280, ((inc-2400)*0.274)-((inc-12060)*0.20)) else actps <- 0
-  if (inc<36308) actc <- min(3558, ((inc-3600)*0.274)-((inc-18520)*0.20)) else actc <- 0
-  if (inc<18305) actfm <- min(1248, ((inc-2400)*0.15)-((inc-12065)*0.20)) else actfm <- 0
-  if (inc<27629) actce <- min(1818, ((inc-3600)*0.14)-((inc-18540)*0.20)) else actce <- 0
+  if (inc<23458) (if (inc>12060) actps <- min(2280, ((inc-2400)*0.274)-((inc-12060)*0.20)) else actps <-2280) else actps <- 0
+  if (inc<36308) (if (inc>18520) actc <- min(3558, ((inc-3600)*0.274)-((inc-18520)*0.20)) else actc <-3558) else actc <- 0
+  if (inc<18305) (if (inc>12065) actfm <- min(1248, ((inc-2400)*0.15)-((inc-12065)*0.20)) else actfm <-1248) else actfm <- 0
+  if (inc<27629) (if (inc>18540) actce <- min(1818, ((inc-3600)*0.14)-((inc-18540)*0.20)) else actce <-1818) else actce <- 0
   
   
   #Allocation canadienne pour enfants
   
   
   #Allocation famille
-  
+  if (inc<125592) (if (inc>49842) afce <- max(1000, min(2515,2515-(inc-49842)*0.04)) else afce <- 2515) else afce <- 0
+  if (inc<87381) (if (inc>36256) affm <- max(1352, min(3397, 3397-(inc-36256)*0.04)) else affm <- 3397) else affm <- 0
   
   #Crédit solidarité
-  if(inc<35400) csps <- 718 else csps <- min(718,max(((inc-35400)*0.06)/12),ctps)
-  if(inc<35400) csc <- 841 else csc <- min(841, max(((inc-35400)*0.06)/12),ctc)
-  if(inc<35400) csfm <- 996 else csfm <- min(996, max(((inc-35400)*0.06)/12),ctfm)
-  if(inc<35400) csce <-1119 else csce <- min(1119, max(((inc-35400)*0.06)/12),ctce)
+  if(inc<35400) csps <- 718 else csps <- min(718,max(718-((inc-35400)*0.06)/12),ctps)
+  if(inc<35400) csc <- 841 else csc <- min(841, max(841-((inc-35400)*0.06)/12),ctc)
+  if(inc<35400) csfm <- 996 else csfm <- min(996, max(996-((inc-35400)*0.06)/12),ctfm)
+  if(inc<35400) csce <-1119 else csce <- min(1119, max(1119-((inc-35400)*0.06)/12),ctce)
   #total CS
   CreditSolidarite<-csps+csc+csfm+csce
 

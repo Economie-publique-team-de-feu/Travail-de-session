@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
 
 <head>
 
 <meta charset="utf-8" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
@@ -1602,6 +1601,7 @@ summary {
   border: none;
   display: inline-block;
   border-radius: 4px;
+  background-color: transparent;
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li {
@@ -1639,25 +1639,19 @@ summary {
 </div>
 
 
-<p>Dans ce travail, nous proposons des ajustements au modèle de simulation de l’offre de travail au Québec à partir d’une étude publiée par des chercheurs de l’Université Laval en 2013. Le modèle est calibré avec les données du Labour Force Survey pour la province de Québec. Nous modélisons également les règles fiscales québécoises pour inclure les principaux transferts provinciaux et fédéraux. Nous utilisons ensuite ce modèle pour simuler l’effet de différentes réformes de la fiscalité québécoise sur l’offre de travail, le revenu des individus et la dispersion des revenus. Les trois réformes étudiées sont :</p>
-<ol style="list-style-type: decimal">
-<li><p>L’instauration d’un revenu minimum garanti</p></li>
-<li><p>La mise en place d’une prime à l’emploi</p></li>
-<li><p>Une combinaison des deux réformes</p></li>
-</ol>
+<p>Dans ce travail, nous proposons un modèle de simulation de l’offre de travail au Québec calibré avec les données du Enquête sur la population active (EPA) pour la province de Québec. Nous utilisons ensuite ce modèle pour simuler l’effet de différentes réformes de la fiscalité québécoise sur l’offre de travail, le revenu des individus et la dispersion des revenus. Les trois réformes étudiées sont : 1. L’instauration d’un revenu minimum garanti 2. La mise en place d’une prime à l’emploi 3. Une combinaison des deux réformes</p>
 <p>Comme mentionné, les effets de ces réformes seront comparés sur la base de l’offre de travail, de la distribution des revenus dans la société et, si le temps et les données nous le permettent, l’effet en bref sur les finances publiques.</p>
 <div id="chargement-des-librairies" class="section level1">
 <h1>0. Chargement des librairies</h1>
-<pre class="r"><code>library(readr) # package pour lire les .csv</code></pre>
-<pre><code>## Warning: package &#39;readr&#39; was built under R version 3.6.1</code></pre>
-<pre class="r"><code>library(compiler) # package pour le Just-in-time compilation
+<pre class="r"><code>library(readr) # package pour lire les .csv
+library(compiler) # package pour le Just-in-time compilation
 enableJIT(3) # Option du package compiler</code></pre>
 <pre><code>## [1] 3</code></pre>
 <pre class="r"><code>set.seed(123) # Pour repliquer les resultats</code></pre>
 </div>
-<div id="modele-doffre-de-travail" class="section level1">
+<div id="modèle-doffre-de-travail" class="section level1">
 <h1>1. Modèle d’offre de travail</h1>
-<div id="preferences-de-lindividu" class="section level2">
+<div id="préférences-de-lindividu" class="section level2">
 <h2>Préférences de l’individu</h2>
 <p>Nous supposons que les préférences des individus sont représentées par une fonction d’utilité de type log-log. La spécification des préférences de ce modèle est tirée d’une étude de Clavet, Duclos et Lacroix (<a href="https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491" class="uri">https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491</a>) et adaptée en fonction des données disponibles:</p>
 <p><span class="math display">\[ U(C_i,L_i) = \alpha_{1i}\ln(\bar{L}-L_i) +\alpha_2\ln(\bar{L}-L_i)^2+ \alpha_3\ln(C_i)+\alpha_4\ln(C_i)^2 + \gamma_0(L_i=0) + \gamma_f(L_i\in[1750,2000])\]</span></p>
@@ -1667,7 +1661,7 @@ enableJIT(3) # Option du package compiler</code></pre>
 <p>Où <em>prescolaire&gt;0</em> est une variable indicatrice égale à 1 si l’individu a au moins un enfant d’âge préscolaire à sa charge, <em>sexe</em> est une indicatrice égale à 1 si l’individu est une femme et <em>educ</em> réflète le niveau d’éducation.</p>
 <p>Pour coder la fonction d’utilité, la vecteur de coefficients est noté <span class="math inline">\(\theta = (\alpha_2, \alpha_3, \alpha_4, \gamma_0, \gamma_f)\)</span> et le coefficient <span class="math inline">\(\alpha_{1i}\)</span> est codé dans une fonction séparée <em>alpha1</em>, qui elle dépend d’un vecteur de coefficients <span class="math inline">\(\beta=(\beta_0, \beta_1, \beta_2, \beta_3, \beta_4, \beta_5)\)</span>.</p>
 <pre class="r"><code>Utilite &lt;- function(i,L,beta,theta){
-# Fonction d&#39;utilité du travail et de la consommation
+# Fonction d'utilité du travail et de la consommation
       util &lt;- alpha1(i,beta)*log(Lmax-L)+ theta[1]*log((Lmax-L)^2)+  theta[2]*log(Y(i,L)) + theta[3]*log((Y(i,L))^2)+ theta[4]*as.numeric(L==0) + theta[5]*as.numeric((L&gt;=1750 &amp; L&lt;=2000))
   return(util)
 }
@@ -1678,7 +1672,7 @@ alpha1 &lt;- function(i, beta){
 }</code></pre>
 <p>L’utilité est donnée par une fonction qui prend comme argument l’individu <em>i</em>, le nombre d’heures travaillées <em>L</em> et le vecteur de coefficients individuels <em>beta</em> et le vecteur de paramètres <em>theta</em>. <em>Lmax</em> est le nombre d’heures travaillées maximales <span class="math inline">\(\bar{L}\)</span>.</p>
 </div>
-<div id="contrainte-budgetaire" class="section level2">
+<div id="contrainte-budgétaire" class="section level2">
 <h2>Contrainte budgétaire</h2>
 <p>La consommation (ou revenu disponible) est donnée par la contrainte budgétaire qui dépend du salaire horaire de l’individu <span class="math inline">\(w_i\)</span>, de ses heures travailles <span class="math inline">\(L_i\)</span> et de la fonction de taxation <span class="math inline">\(t(\cdot)\)</span>:</p>
 <p><span class="math display">\[
@@ -1698,14 +1692,14 @@ w_iL_i-t(w_iL_i)\geq C_i
 <p><span class="math display">\[ U(L_i) = \alpha_{1i}\ln(\bar{L}-L) +\alpha_2\ln(\bar{L}-L)^2+ \alpha_3\ln(w_iL_i-t(w_iL_i))+\alpha_4\ln(w_iL_i-t(w_iL_i))^2 + \gamma_0(L=0) + \gamma_f(L\in[1750,2000])\]</span></p>
 <p>En supposant que <em>L</em> est une variable continue, que <span class="math inline">\(t(\cdot)\)</span> est différentiable, et que <span class="math inline">\(\gamma_0=\gamma_f=0\)</span>, on peut prendre les conditions de premier ordre et réécrire le taux maginal de substitution entre le loisir <span class="math inline">\(\bar{L}-L\)</span> et la consommation <span class="math inline">\(Y_i\)</span>:</p>
 <p><span class="math display">\[
-\frac{\bar{L}-L_i}{C_i}=\frac{\bar{L}-L_i}{w_iL_i-t(w_iL_i)}=\frac{\alpha_{1i}+2\alpha_2}{(\alpha_3+2\alpha_4)~w_i(1-t&#39;(w_iL_i))}
+\frac{\bar{L}-L_i}{C_i}=\frac{\bar{L}-L_i}{w_iL_i-t(w_iL_i)}=\frac{\alpha_{1i}+2\alpha_2}{(\alpha_3+2\alpha_4)~w_i(1-t'(w_iL_i))}
 \]</span></p>
 <p>On voit donc que le <span class="math inline">\(\alpha_{1i}\)</span> permet à deux individus ayant le même salaire horaire <span class="math inline">\(w_i\)</span> d’avoir des taux marginaux de substitution entre le loisir et la consommation différents en fonctions de caractéristiques de ces individus.</p>
 <p>Cependant, nous supposons ici un modèle d’offre de travail à choix discrets, comme dans l’étude de Clavet, Duclos et Lacroix. En effet, les individus en réalité ne peuvent ajuster leurs heures de travail que de façon discrète (des heures entières). Puisque ce sont des heures annuelles, ce n’est pas une hypothèse très forte. La fonction suivante évalue l’utilité pour différents choix d’heure de travail:</p>
 <pre class="r"><code>umarginal &lt;- function(i,incr,beta,theta){
-# calcule l&#39;utilite marginale de l&#39;individu i par increments de incr heures de travail
+# calcule l'utilite marginale de l'individu i par increments de incr heures de travail
   lsup &lt;- seq(0,Lmax,by=incr) # vecteur des heures travaillees
-  util &lt;- sapply(lsup,function(x) Utilite(i,x,beta,theta)) # evalue l&#39;utilite pour chaque niveau d&#39;heures travaillees
+  util &lt;- sapply(lsup,function(x) Utilite(i,x,beta,theta)) # evalue l'utilite pour chaque niveau d'heures travaillees
   util2 &lt;- c(util[2:(length(util))],0) # decale le vecteur des utilites
   deltautil &lt;- util2-util # utilite marginale
   return(list(lsup[1:length(lsup)-1],deltautil[1:length(lsup)-1],util[1:length(lsup)-1]))
@@ -1727,14 +1721,14 @@ beta &lt;- c(1, -1, 1, 1, -1, 1)
 theta &lt;- c(1, 1, 1, 1, 1)
 
 #Données aléatoires
-#Enlever le seed pour voir plusieurs tirages et le graphique s&#39;adapter
+#Enlever le seed pour voir plusieurs tirages et le graphique s'adapter
 wage      &lt;-   sample(12:150, 10, replace = TRUE)
 age      &lt;-    sample(20:80, 10, replace = TRUE)
 prescolaire &lt;- sample(0:1, 10, replace = TRUE)
 sexe  &lt;-       sample(0:1, 10, replace = TRUE)
 educ &lt;-        sample(0:6, 10, replace = TRUE)
 
-#Nombre d&#39;individus
+#Nombre d'individus
 n&lt;-10
 Lopt&lt;- rep(0, n)
 
@@ -1755,66 +1749,29 @@ hist(Lopt,
 <p>Dans cet exemple, les individus ne peuvent pas travailler 0 heures même si la fonction d’utilité est bonifiée quand <em>L=0</em> car <em>ln(0)</em> n’est pas défini. Les heures simulées dépendent fortement des paramères arbitraires postulés. Dans ce cas hypothétique, nous avons posé que tous les intrants de la fonction d’utilité ont un effet égal à un, sauf l’âge et le fait d’être une femme qui diminuent la préférence pour le loisir. La modification de ces coefficients affecte la distribution des heures de travail simulée dans cette cohorte.</p>
 </div>
 </div>
-<div id="donnees-du-labour-force-survey" class="section level1">
-<h1>2. Données du <em>Labour Force Survey</em></h1>
-<p>Pour cette analyse, nous allons utiliser les données du <em>Labour Force Survey</em> pour la province de Québec (<em>PROV=24</em>). Afin de ne pas inclure les effets exogènes sur l’économie dus au COVID-19, nous avons téléchargé les données de février 2020.</p>
-<p>Voici une table détaillant les variables extraites:</p>
-<table>
-<thead>
-<tr class="header">
-<th>Nom de la variable <em>LFS</em></th>
-<th>Description</th>
-<th>Nom abrégé</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>AGE_12</td>
-<td></td>
-<td></td>
-</tr>
-<tr class="even">
-<td>SEX</td>
-<td></td>
-<td></td>
-</tr>
-<tr class="odd">
-<td>EDUC</td>
-<td></td>
-<td></td>
-</tr>
-<tr class="even">
-<td>ATOTHRS</td>
-<td></td>
-<td></td>
-</tr>
-<tr class="odd">
-<td>HRLYEARN</td>
-<td></td>
-<td></td>
-</tr>
-<tr class="even">
-<td>FINALWT</td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<p>(à compléter…)</p>
-<div id="chargement-des-donnees" class="section level2">
+<div id="données-de-lenquête-sur-la-population-active" class="section level1">
+<h1>2. Données de l’Enquête sur la population active</h1>
+<p>Pour cette analyse, nous allons utiliser les données de l’EPA pour la province de Québec (<em>PROV=24</em>). Afin de ne pas inclure les effets exogènes sur l’économie dus au COVID-19, nous avons téléchargé les données de février 2020. - La commande <em>complete.case</em> enlève les valeurs manquantes - <em>n</em> est le nombre d’individus - <em>wage</em> est le salaire horaire habituel déclaré pour chaque individu - <em>Xmat</em> est la matrice des characteristiques individuelles - <em>theta</em> est un vecteur de paramètres à estimer - <em>alpha</em> est le vecteur (impliqué par <em>theta</em>) des préférences individuelles.</p>
+<div id="chargement-des-données" class="section level2">
 <h2>Chargement des données</h2>
 <p>Pour mettre en forme les données, nous avons utilisé la commande <em>complete.cases</em> pour enlever les valeurs manquantes. Nous avons également noté <em>n</em> le nombre d’individus.</p>
 <pre class="r"><code>lfs &lt;- read_csv(&quot;./LFS-71M0001-E-2020-February_F1.csv&quot;, col_types = cols()) # importe les données du LFS, May 2018
 #lfs &lt;- ds
 lfsqc &lt;- lfs[lfs$PROV==24,] # garde uniquement le Québec
 rm(lfs) # supprime la base initiale de la mémoire
-lfsqc &lt;- lfsqc[,c(&quot;AGE_12&quot;,&quot;SEX&quot;,&quot;EDUC&quot;,&quot;ATOTHRS&quot;,&quot;HRLYEARN&quot;,&quot;FINALWT&quot;)] # garde seulement certaines variables
-n0 &lt;- nrow(lfsqc) # garde le nombre d&#39;observations initiales
+lfsqc &lt;- lfsqc[,c(&quot;AGE_12&quot;,&quot;SEX&quot;,&quot;EDUC&quot;,&quot;ATOTHRS&quot;,&quot;HRLYEARN&quot;,&quot;EFAMTYPE&quot;,&quot;SCHOOLN&quot;,&quot;AGYOWNK&quot;,&quot;FINALWT&quot;)] # garde seulement certaines variables
+n0 &lt;- nrow(lfsqc) # garde le nombre d'observations initiales
 missingweight &lt;- c(lfsqc[!complete.cases(lfsqc),&quot;FINALWT&quot;])[[1]] #garde les poids des individus qui seront enlevés
 lfsqc &lt;- lfsqc[complete.cases(lfsqc), ] # enlève les observations avec des variables manquantes
-lfsqc &lt;- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # sous-échantillonage pour les tests (à commenter pour l&#39;analyse finale)
-n &lt;- nrow(lfsqc) # nombre d&#39;individus dans la base
+lfsqc &lt;- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # sous-échantillonage pour les tests (à commenter pour l'analyse finale)
+n &lt;- nrow(lfsqc) # nombre d'individus dans la base
 wage &lt;- as.numeric(lfsqc$HRLYEARN) # salaire horaire
+prescolaire &lt;- ifelse(lfsqc$AGYOWNK == 1, 1, 0) # enfant le plus jeune à moins de 6 ans: 1= oui, 2=non
+menage &lt;- ifelse(lfsqc$EFAMTYPE == 18, &quot;autre&quot;, ifelse(lfsqc$EFAMTYPE &gt; 13 &amp; lfsqc$EFAMTYPE &lt; 18, &quot;monoparental&quot;, 
+  ifelse(lfsqc$EFAMTYPE &gt; 1 &amp; lfsqc$EFAMTYPE &lt; 14, &quot;couple&quot;, ifelse(lfsqc$EFAMTYPE == 1, 1, lfsqc$EFAMTYPE))))
+# classification du type de ménage
+enfant &lt;- ifelse(lfsqc$EFAMTYPE == 3 | lfsqc$EFAMTYPE == 6 | lfsqc$EFAMTYPE == 9 | lfsqc$EFAMTYPE == 12 | 
+  lfsqc$EFAMTYPE == 14 | lfsqc$EFAMTYPE == 16, 1, 0) # 1 = ménage avec enfant = 1, sans enfant = 0
 Xmat &lt;- matrix(c(lfsqc$AGE_12,lfsqc$SEX,lfsqc$EDUC),n,3) # matrice des variables explicatives
 Xmat &lt;- matrix(c(rep(1,n),Xmat),n,4) # ajoute une constante
 k &lt;- 4 # nombre de variables explicatives (incluant la constante)
@@ -1823,28 +1780,21 @@ corfact &lt;- sum(lfsqc$FINALWT)/(sum(lfsqc$FINALWT)+sum(missingweight))
 wght &lt;- as.numeric(lfsqc$FINALWT)/corfact # calcule les poids approximatifs (les val. manquantes sont parfaitement aléatoires)
 
 summary(cbind(Xmat,wage)) # résumé des variables</code></pre>
-<pre><code>##        V1          V2               V3              V4       
-##  Min.   :1   Min.   : 1.000   Min.   :0.000   Min.   :0.000  
-##  1st Qu.:1   1st Qu.: 3.000   1st Qu.:0.000   1st Qu.:3.000  
-##  Median :1   Median : 6.000   Median :1.000   Median :4.000  
-##  Mean   :1   Mean   : 5.706   Mean   :0.519   Mean   :3.678  
-##  3rd Qu.:1   3rd Qu.: 8.000   3rd Qu.:1.000   3rd Qu.:5.000  
-##  Max.   :1   Max.   :12.000   Max.   :1.000   Max.   :6.000  
-##       wage      
-##  Min.   : 7.50  
-##  1st Qu.:17.00  
-##  Median :24.00  
-##  Mean   :27.33  
-##  3rd Qu.:34.40  
-##  Max.   :86.54</code></pre>
+<pre><code>##        V1          V2               V3              V4             wage      
+##  Min.   :1   Min.   : 1.000   Min.   :0.000   Min.   :0.000   Min.   : 5.13  
+##  1st Qu.:1   1st Qu.: 5.000   1st Qu.:0.000   1st Qu.:4.000   1st Qu.:21.23  
+##  Median :1   Median : 6.000   Median :1.000   Median :4.000   Median :28.73  
+##  Mean   :1   Mean   : 5.868   Mean   :0.535   Mean   :4.015   Mean   :31.36  
+##  3rd Qu.:1   3rd Qu.: 7.000   3rd Qu.:1.000   3rd Qu.:5.000   3rd Qu.:39.44  
+##  Max.   :1   Max.   :10.000   Max.   :1.000   Max.   :6.000   Max.   :92.31</code></pre>
 </div>
 <div id="statistiques-descriptives" class="section level2">
 <h2>Statistiques descriptives</h2>
 </div>
 </div>
-<div id="regles-fiscales-quebecoises" class="section level1">
+<div id="règles-fiscales-québécoises" class="section level1">
 <h1>3. Règles fiscales québécoises</h1>
-<div id="palliers-dimposition-provinciaux-et-federaux" class="section level2">
+<div id="palliers-dimposition-provinciaux-et-fédéraux" class="section level2">
 <h2>Palliers d’imposition provinciaux et fédéraux</h2>
 <p>Nous allons aussi utiliser les taux de taxe et paliers suivants:</p>
 <pre class="r"><code>  # source1: http://www.nrgcpa.ca/deductions-a-la-source-et-charges-sociales
@@ -1896,6 +1846,10 @@ summary(cbind(Xmat,wage)) # résumé des variables</code></pre>
   PrimeTravail&lt;-ptps+ptc+ptfm+ptce
   
   #Allocation canadienne pour les trvailleurs
+  if (inc&lt;23458) actps &lt;- min(2280, ((inc-2400)*0.274)-((inc-12060)*0.20)) else actps &lt;- 0
+  if (inc&lt;36308) actc &lt;- min(3558, ((inc-3600)*0.274)-((inc-18520)*0.20)) else actc &lt;- 0
+  if (inc&lt;18305) actfm &lt;- min(1248, ((inc-2400)*0.15)-((inc-12065)*0.20)) else actfm &lt;- 0
+  if (inc&lt;27629) actce &lt;- min(1818, ((inc-3600)*0.14)-((inc-18540)*0.20)) else actce &lt;- 0
   
   
   #Allocation canadienne pour enfants
@@ -1975,13 +1929,13 @@ summary(cbind(Xmat,wage)) # résumé des variables</code></pre>
 <h2>Taux marginaux effectifs d’imposition</h2>
 <p>Notez qu’on peut directement voir l’impact de la fonction de taxe, sans hypothèses sur le comportement des individus en regardant les taux marginaux effectifs (TME) d’imposition. Le code suivant crée un graphique pour des incréments salariaux annuels de <em>incr</em> jusqu’à un revenu annuel de <em>imax</em> $</p>
 <pre class="r"><code>tme &lt;- function(incr,imax){
-  # calcule les taux marginaux effectifs d&#39;imposition, par incréments de &quot;incr&quot;$, jusqu&#39;à imax$
+  # calcule les taux marginaux effectifs d'imposition, par incréments de &quot;incr&quot;$, jusqu'à imax$
   incm &lt;- seq(0,imax,by=incr) # vecteur des niveaux de revenus
   tax &lt;- sapply(incm,function(x) itax(x)[1]) # applique la taxe sur chaque niveau de revenu
   tax2 &lt;- c(tax[2:(length(tax))],0) # décale le taux de taxe
   deltatax &lt;- tax2-tax # taxe marginale
   tm &lt;- deltatax/incr # taux marginal effectif
-  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab=&#39;Revenu annuel&#39;, ylab=&#39;TME&#39;)
+  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TME')
   return(list(incm[1:length(incm)-1],tm[1:length(incm)-1]))
 }
 outtme &lt;- tme(100,250000)</code></pre>
@@ -1990,27 +1944,27 @@ outtme &lt;- tme(100,250000)</code></pre>
 </div>
 <div id="calibration" class="section level1">
 <h1>4. Calibration</h1>
-<div id="variables-generales" class="section level2">
+<div id="variables-générales" class="section level2">
 <h2>Variables générales</h2>
 <p>Les variables globales sont définies comme suit: * <em>Lmax</em> est le nombre maximal d’heures qu’il est possible de travailler par année. Nous l’avons fixé à 4250 heures, soit 85 heures par semaine. * <em>weeks</em> est le nombre de semaines de travail par année, fixé à 50. * <em>lincr</em> est le nombre minimal d’heures annuelles de travail que l’individu peut ajuster. Nous l’avons fixé à 250 heures par année, soit des incréments de 5 heures par semaine.</p>
 <pre class="r"><code>Lmax &lt;- 4250
 weeks &lt;- 50
 lincr &lt;- 250</code></pre>
 </div>
-<div id="processus-aleatoires" class="section level2">
+<div id="processus-aléatoires" class="section level2">
 <h2>Processus aléatoires</h2>
 <p>Pour calibrer le modèle d’offre de travail, nous allons utiliser les données sur les heures travaillées disponibles dans la <em>Labour Force Survey</em>. Comme il y a toujours une variabilité dans les données qui ne peut être captée par le modèle théorique, nous ajoutons des processus aléatoires au modèle spécifié plus haut. Pour ce faire, nous supposons des caractéristiques inobservables des individus qui rendent aléatoire la fonction de préférence pour le loisir:</p>
-<p><span class="math display">\[\hat{\alpha_{1i}} = \alpha_{1i}+v\]</span> où <em>v</em> est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance <span class="math inline">\(\sigma^2\)</span>.</p>
+<p>Pour régler cette situation, nous allons utiliser les données sur les heures travaillées disponibles dans l’EPA. <span class="math display">\[\hat{\alpha_{1i}} = \alpha_{1i}+v\]</span> où <em>v</em> est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance <span class="math inline">\(\sigma^2\)</span>.</p>
 <p>Nous supposons aussi que la fonction d’utilité elle-même a un terme d’erreur <span class="math inline">\(\xi_i\)</span>:</p>
 <p><span class="math display">\[\hat{U}_i(C,L)=U_i(C,L)+\xi_i,\]</span></p>
 <p>où <span class="math inline">\(\xi_i\)</span> est une loi d’extremum généralisée de type I (Loi de Gumbel). L’utilisation de cette règle de distribution est motivée dans l’article de Clavet, Duclos et Lacroix et repose sur la sur-représentation de valeurs extrèmes dans les données observées sur l’offre de travail.</p>
 </div>
-<div id="methode-des-moments-generalises-simules" class="section level2">
+<div id="méthode-des-moments-généralisés-simulés" class="section level2">
 <h2>Méthode des moments généralisés simulés</h2>
 <p>Nous allons calibrer le modèle théorique avec les données du <em>LFS</em>. Essentiellement, il s’agit de trouver les valeurs de <span class="math inline">\(\beta\)</span> et de <span class="math inline">\(\theta\)</span> afin que les heures travaillées simulées par le modèle d’offre de travail basé sur la théorie économique soient le plus près possible des données observées dans le <em>LFS</em>. Pour ce faire, nous utilisons la méthode des moments généralisés, qui consiste à fixer certains paramètres de la distribution, comme la moyenne et l’écart-type et à sélectionner les valeurs de <span class="math inline">\(\beta\)</span> et de <span class="math inline">\(\theta\)</span> qui reproduisent ces <em>moments.</em></p>
 <p>Comme la population du sondage est diversifiée et que les caractéristiques individuelles influencent formement les préférences pour le loisir, il faut inclure plusieurs variables dans le modèle. Dans ce cas, il y a plusieurs combinaisons de <span class="math inline">\(\beta\)</span> et de <span class="math inline">\(\theta\)</span> qui permettent de répliquer la moyenne et l’écart-type des heures travaillées. On dit que le modèle est <em>sous-identifié</em>. Pour que le modèle soit identifié, il nous faut au minimum autant de moments que de paramètres à estimer. En multipliant le vecteur des heures travaillées par la matrice des caractéristiques individuelles, on obtient facilement des moments intuitifs.</p>
 <p>Le code suivant génère les moments associés en prenant soin de pondérer les moyennes et l’écart-type, puisque es individus ne sont pas également représentatifs de la population.</p>
-<pre class="r"><code>rhours &lt;- as.numeric(lfsqc$ATOTHRS)*weeks # nombre d&#39;heures annuelles sur une base de &#39;weeks&#39; semaines de travail
+<pre class="r"><code>rhours &lt;- as.numeric(lfsqc$ATOTHRS)*weeks # nombre d'heures annuelles sur une base de 'weeks' semaines de travail
 wrhours &lt;- rhours*wght
 rwse &lt;-  sqrt((sum(wght*(rhours^2))/sum(wght))-(sum(wrhours)/sum(wght))^2)
 #rmoments &lt;- c(colSums(matrix(rep(wrhours,k),n,k)*Xmat)/sum(wght),rwse,sum(as.numeric(rhours&gt;=1750&amp;rhours&lt;=2000)*wght)/sum(wght),sum(as.numeric(rhours==0)*wght)/sum(wght)) # calcul des moments
@@ -2030,12 +1984,12 @@ print(rmoments)</code></pre>
 </ol>
 <p>On veut donc choisir une valeur de <span class="math inline">\(\theta\)</span> telle que les moments simulés par le modèle soient proche des moments dans les données. Malgré que nous ayons autant de moments que de paramètres, nous ne pouvons en général pas être certains qu’il existe une unique solution de <span class="math inline">\(\theta\)</span> . C’est pour cela que nous parlons habituellement de <em>calibration</em> et non d’<em>estimation</em> du modèle. En pratique, la calibration s’opère comme une estimation classique, i.e. nous allons minimiser la distance entre les moments simulés et les moments observés:</p>
 <p><span class="math display">\[
-GMM(\theta)=(\mathbb{E}Moments(\theta)-Moments)&#39;(\mathbb{E}Moments(\theta)-Moments)
+GMM(\theta)=(\mathbb{E}Moments(\theta)-Moments)'(\mathbb{E}Moments(\theta)-Moments)
 \]</span> où <span class="math inline">\(\mathbb{E}Moments(\theta)\)</span> est la moyenne des moments simulés pour différents tirages des <span class="math inline">\(\varepsilon_i\)</span> et <span class="math inline">\(Moments\)</span> sont les moments des données. La procédure est donc de minimiser <span class="math inline">\(GMM(\theta)\)</span>. Voici le code R associé:</p>
 <pre class="r"><code>wrapi &lt;- function(i,sim,alpha,theta){
-    u &lt;- as.numeric(umarginal(i,lincr,alpha,theta)[[3]])+as.numeric(erreur[[sim]][i,])*exp(theta[k+1]) # utilité pour chaque niveau d&#39;heures travaillées
-      # notez ici le changement de variable &quot;exp(theta[6])&quot; afin de s&#39;assurer que l&#39;écart-type soit toujours un chiffre positif.
-    h &lt;- (which(u==max(u))-1)*lincr # heures travaillées qui maximisent l&#39;utilité
+    u &lt;- as.numeric(umarginal(i,lincr,alpha,theta)[[3]])+as.numeric(erreur[[sim]][i,])*exp(theta[k+1]) # utilité pour chaque niveau d'heures travaillées
+      # notez ici le changement de variable &quot;exp(theta[6])&quot; afin de s'assurer que l'écart-type soit toujours un chiffre positif.
+    h &lt;- (which(u==max(u))-1)*lincr # heures travaillées qui maximisent l'utilité
     return(min(h))
 }
 simhours &lt;- function(theta){
@@ -2088,15 +2042,15 @@ print(max(rhours))</code></pre>
     hours &lt;- rep(0,n) # vecteur de zéros qui va contenir les heures travaillées simulées
     alpha &lt;- exp(as.numeric(Xmat%*%matrix(theta[1:k],k,1))) # simulation des préférences alpha pour chaque individu
     for (i in 1:n){
-      u &lt;- umarginal(i,lincr,alpha,theta)[[3]]+as.numeric(erreur[[sim]][i,])*exp(theta[k+1]) # utilité pour chaque niveau d&#39;heures travaillées
-      h &lt;- (which(u==max(u))-1)*lincr # heures travaillées qui maximisent l&#39;utilité
+      u &lt;- umarginal(i,lincr,alpha,theta)[[3]]+as.numeric(erreur[[sim]][i,])*exp(theta[k+1]) # utilité pour chaque niveau d'heures travaillées
+      h &lt;- (which(u==max(u))-1)*lincr # heures travaillées qui maximisent l'utilité
       hours[i] &lt;- h # conserve dans le vecteur
     }
     return(hours)
 }
 hist(simwork(thetatry,1))</code></pre>
 </div>
-<div id="comparaison-des-resultats-observes-et-simules" class="section level2">
+<div id="comparaison-des-résultats-observés-et-simulés" class="section level2">
 <h2>Comparaison des résultats observés et simulés</h2>
 <p>Pour l’instant, la valeur estimée de <span class="math inline">\(\theta\)</span> nous donne une distribution des heures travaillées, ce qui nous permet de calculer les taxes, le bien-être et beaucoup d’autre variables.</p>
 <pre class="r"><code>makestats &lt;- function(theta){
@@ -2120,9 +2074,9 @@ summary(matstats)</code></pre>
 <p>Cela nous donne donc des données intéressantes à comparer. Vous pouvez aussi naturellement vous intéresser à d’autres variables comme par exemple l’indice de Gini. Faites par contre attention d’utiliser correctement les poids échantillonaux lorsque vous travaillez avec des variables globales!</p>
 </div>
 </div>
-<div id="reforme-1-revenu-minimum-garanti" class="section level1">
+<div id="réforme-1-revenu-minimum-garanti" class="section level1">
 <h1>5. Réforme #1 : Revenu minimum garanti</h1>
-<div id="nouvelles-regles-fiscales" class="section level2">
+<div id="nouvelles-règles-fiscales" class="section level2">
 <h2>Nouvelles règles fiscales</h2>
 <p>On a donc une valeur de <span class="math inline">\(\theta\)</span> qui permet de répliquer les moments observés dans les données et de donner quelques statistiques descriptives de l’économie simulée. On peut donc maintenant commencer à faire des analyses de réformes. À titre d’exemple, ici, enlevons le programme d’aide sociale.</p>
 <pre class="r"><code>as &lt;- 0</code></pre>
@@ -2132,7 +2086,7 @@ summary(matstats)</code></pre>
 <p><img src="data:image/png;base64,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" width="672" /></p>
 </div>
 </div>
-<div id="simulations-du-modele-doffre-de-travail" class="section level2">
+<div id="simulations-du-modèle-doffre-de-travail" class="section level2">
 <h2>Simulations du modèle d’offre de travail</h2>
 <p>On peut donc utiliser le modèle pour voir les changements anticipés sur les valeurs des moments.</p>
 <pre class="r"><code>print(simhours(thetatry))</code></pre>
@@ -2145,13 +2099,13 @@ summary(matstats_noas)</code></pre>
 <pre class="r"><code>hist(matstats_noas[,1])</code></pre>
 </div>
 </div>
-<div id="reforme-2-prime-a-lemploi" class="section level1">
+<div id="réforme-2-prime-à-lemploi" class="section level1">
 <h1>6. Réforme #2: Prime à l’emploi</h1>
 </div>
-<div id="reforme-3-combinaison-de-rmg-et-prime-a-lemploi" class="section level1">
+<div id="réforme-3-combinaison-de-rmg-et-prime-à-lemploi" class="section level1">
 <h1>7. Réforme #3: Combinaison de RMG et prime à l’emploi</h1>
 </div>
-<div id="comparaisons-des-reformes" class="section level1">
+<div id="comparaisons-des-réformes" class="section level1">
 <h1>8. Comparaisons des réformes</h1>
 </div>
 
