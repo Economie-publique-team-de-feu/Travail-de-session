@@ -1,0 +1,623 @@
+---
+title: "Travail V1"
+author: "Patricia Côté, Samy Gallienne, Élodie Gravel, Pascale Laveault-Allard"
+output:
+  html_document:
+    df_print: paged
+jupyter:
+  jupytext:
+    formats: ipynb,Rmd
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.4.1
+  kernelspec:
+    display_name: R
+    language: R
+    name: ir
+---
+
+Dans ce travail, nous proposons des ajustements au modèle de simulation de l'offre de travail au Québec à partir d'une étude publiée par des chercheurs de l'Université Laval en 2013. Le modèle est calibré avec les données du Labour Force Survey pour la province de Québec. Nous modélisons également les règles fiscales québécoises pour inclure les principaux transferts provinciaux et fédéraux. Nous utilisons ensuite ce modèle pour simuler l'effet de différentes réformes de la fiscalité québécoise sur l'offre de travail, le revenu des individus et la dispersion des revenus. Les trois réformes étudiées sont :
+
+1. L'instauration d'un revenu minimum garanti 
+
+2. La mise en place d'une prime à l'emploi 
+
+3. Une combinaison des deux réformes 
+
+Comme mentionné, les effets de ces réformes seront comparés sur la base de l'offre de travail, de la distribution des revenus dans la société et, si le temps et les données nous le permettent, l'effet en bref sur les finances publiques.
+
+
+
+# 0. Chargement des librairies
+
+```{r}
+library(readr) # package pour lire les .csv
+library(compiler) # package pour le Just-in-time compilation
+enableJIT(3) # Option du package compiler
+set.seed(123) # Pour repliquer les resultats
+
+```
+
+
+
+# 1. Modèle d'offre de travail
+
+## Préférences de l'individu
+
+Nous supposons que les préférences des individus sont représentées par une fonction d'utilité de type log-log. La spécification des préférences de ce modèle est tirée d'une étude de Clavet, Duclos et Lacroix (https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491) et adaptée en fonction des données disponibles:
+
+$$ U(C_i,L_i) = \alpha_{1i}\ln(\bar{L}-L_i) +\alpha_2\ln(\bar{L}-L_i)^2+ \alpha_3\ln(C_i)+\alpha_4\ln(C_i)^2 + \gamma_0(L_i=0) + \gamma_f(L_i\in[1750,2000])$$
+
+Où $C_i$ le niveau de consommation (le revenu disponible), $L_i$ est la quantité de travail (annuelle, en heures) et $\bar{L}$ est le nombre maximal d'heures qu'un individu peut travailler annuellement. Ainsi spécifié, le terme $\bar{L}-L_i$ est le nombre d'heures annuelles de loisir consommé par l'individu *i*. 
+
+Le coefficient $\gamma_0$ permet d'inclure des coûts fixes au travail alors que le coefficient $\gamma_f$ permet de mettre une rigidité au travail à temps plein, défini entre 35 et 40 heures par semaine.
+
+Toujours en s'inspirant de la proposition de Clavet, Duclos et Lacroix , l'hétérogénéité des préférences pour le loisir $\bar{L}-L$ est réflété dans le paramètre $\alpha_{1i}$:
+$$ \alpha_{1i} =\beta_0 + \beta_1\ln(age) + \beta_2\ln(age)^2 + \beta_3(prescolaire>0) + \beta_4~sexe + \beta_5~educ $$
+
+Où *prescolaire>0* est une variable indicatrice égale à 1 si l'individu a au moins un enfant d'âge préscolaire à sa charge, *sexe* est une indicatrice égale à 1 si l'individu est une femme et *educ* réflète le niveau d'éducation. 
+
+Pour coder la fonction d'utilité, la vecteur de coefficients est noté $\theta = (\alpha_2, \alpha_3, \alpha_4, \gamma_0, \gamma_f)$ et le coefficient $\alpha_{1i}$ est codé dans une fonction séparée *alpha1*, qui elle dépend d'un vecteur de coefficients $\beta=(\beta_0, \beta_1, \beta_2, \beta_3, \beta_4, \beta_5)$.
+
+```{r}
+Utilite <- function(i,L,beta,theta){
+# Fonction d'utilité du travail et de la consommation
+      util <- alpha1(i,beta)*log(Lmax-L)+ theta[1]*log((Lmax-L)^2)+  theta[2]*log(Y(i,L)) + theta[3]*log((Y(i,L))^2)+ theta[4]*as.numeric(L==0) + theta[5]*as.numeric((L>=1750 & L<=2000))
+  return(util)
+}
+
+alpha1 <- function(i, beta){
+    alpha1 <- beta[1]+ beta[2]*log(age[i])+ beta[3]*log((age[i])^2)+ beta[4]*prescolaire[i]+ beta[5]*sexe[i] + beta[5]*educ[i]
+  return(alpha1)
+}
+```
+
+L'utilité est donnée par une fonction qui prend comme argument l'individu *i*, le nombre d'heures travaillées *L* et le vecteur de coefficients individuels *beta* et le vecteur de paramètres *theta*. *Lmax* est le nombre d'heures travaillées maximales $\bar{L}$.
+
+## Contrainte budgétaire
+
+La consommation (ou revenu disponible) est donnée par la contrainte budgétaire qui dépend du salaire horaire de l'individu $w_i$, de ses heures travailles $L_i$ et de la fonction de taxation $t(\cdot)$:
+
+$$
+w_iL_i-t(w_iL_i)\geq C_i
+$$
+
+qui sera saturée à l'optimum. La fonction de taxation $t(w_iL_i)$ est  une fonction non-linéaire du revenu de travail brut.  $w_i$ est le salaire horaire pour chaque individu *i*. Le code R associé à au revenut disponible, assumant que la contrainte budgétaire est serrée, est donné par:
+
+```{r}
+Y <- function(i,L){
+  # Calcule la consommation nette (revenu disponible)
+  dispo <- L*wage[i]-itax(L*wage[i])[1]
+  return(dispo)
+}
+```
+
+La consommation est une fonction de l'individu *i* (son salaire) et du nombre d'heures travaillées *L*. Elle dépend aussi de la taxation du revenu par la fonction *taxe*, qui sera définie à la section 3 sur les règles fiscales qubécoises et canadiennes. 
+
+## Maximisation sous contrainte
+
+Pour maximiser l'utilité de l'individu, on peut substituer la contrainte budgétaire dans la fonction objectif:
+
+$$ U(L_i) = \alpha_{1i}\ln(\bar{L}-L) +\alpha_2\ln(\bar{L}-L)^2+ \alpha_3\ln(w_iL_i-t(w_iL_i))+\alpha_4\ln(w_iL_i-t(w_iL_i))^2 + \gamma_0(L=0) + \gamma_f(L\in[1750,2000])$$
+
+En supposant que *L* est une variable continue, que $t(\cdot)$ est différentiable, et que $\gamma_0=\gamma_f=0$, on peut prendre les conditions de premier ordre et réécrire le taux maginal de substitution entre le loisir $\bar{L}-L$ et la consommation $Y_i$:
+
+$$
+\frac{\bar{L}-L_i}{C_i}=\frac{\bar{L}-L_i}{w_iL_i-t(w_iL_i)}=\frac{\alpha_{1i}+2\alpha_2}{(\alpha_3+2\alpha_4)~w_i(1-t'(w_iL_i))}
+$$
+
+On voit donc que le $\alpha_{1i}$ permet à deux individus ayant le même salaire horaire $w_i$ d'avoir des taux marginaux de substitution entre le loisir et la consommation différents en fonctions de caractéristiques de ces individus. 
+
+Cependant, nous supposons ici un modèle d'offre de travail à choix discrets, comme dans l'étude de Clavet, Duclos et Lacroix. En effet, les individus en réalité ne peuvent ajuster leurs heures de travail que de façon discrète (des heures entières). Puisque ce sont des heures annuelles, ce n'est pas une hypothèse très forte. La fonction suivante évalue l'utilité pour différents choix d'heure de travail:
+
+```{r}
+umarginal <- function(i,incr,beta,theta){
+# calcule l'utilite marginale de l'individu i par increments de incr heures de travail
+  lsup <- seq(0,Lmax,by=incr) # vecteur des heures travaillees
+  util <- sapply(lsup,function(x) Utilite(i,x,beta,theta)) # evalue l'utilite pour chaque niveau d'heures travaillees
+  util2 <- c(util[2:(length(util))],0) # decale le vecteur des utilites
+  deltautil <- util2-util # utilite marginale
+  return(list(lsup[1:length(lsup)-1],deltautil[1:length(lsup)-1],util[1:length(lsup)-1]))
+}
+```
+
+
+La fonction prend comme arguments l'individu *i*, la variation discrète annuelle des heures qu'il est possible de travailler *incr*, que le vecteur de préférences individuelles *beta* et le vecteur de paramètre de la fonction d'utilité *theta*. La fonction retourne une liste de trois éléments. Premièrement, *lsup*, le vecteur des heures travaillées auxquelles la fonction est évaluée. Deuxièmement, *deltautil* est l'utilité marginale entre $L$ et $L+1$ heures travaillées. Troisièmement, *util* est l'utilité évaluée à chaque valeur de *lsup*. Le nombres d'heures optimales travaillées *Loptimal* est simplement la valeur de *L* qui est associée à la plus grande utilité:
+
+```{r}
+Loptimal <- function(lsup, util){
+  position <- which(util==max(util)) #utilite maximale
+  return(lsup[position]) 
+}
+```
+
+Voici un jeu de données fictives (10 observations) sur lesquelles nous avons testé les fonctions (sans taxes ni transferts)
+
+```{r}
+#Fonction de taxation temporaire: aucune taxe
+itax<- function(inc){
+  return(0)
+}
+
+#Vecteurs de coefficients arbitraires
+Lmax=4000
+beta <- c(1, -1, 1, 1, -1, 1)
+theta <- c(1, 1, 1, 1, 1)
+
+#Données aléatoires
+#Enlever le seed pour voir plusieurs tirages et le graphique s'adapter
+wage      <-   sample(12:150, 10, replace = TRUE)
+age      <-    sample(20:80, 10, replace = TRUE)
+prescolaire <- sample(0:1, 10, replace = TRUE)
+sexe  <-       sample(0:1, 10, replace = TRUE)
+educ <-        sample(0:6, 10, replace = TRUE)
+
+#Nombre d'individus
+n<-10
+Lopt<- rep(0, n)
+
+for (i in 1:n) {
+  umarg <- umarginal(i,100, beta, theta)
+  lsup<- unlist(umarg[1])
+  util <-unlist(umarg[3] )
+  Lopt[i] <- Loptimal(lsup, util)
+}
+
+hist(Lopt, 
+     main="Heures optimales simulées", 
+     xlab="Heures de travail", 
+     xlim=c(100,4000),
+     las=1, 
+     breaks=10)
+```
+
+Dans cet exemple, les individus ne peuvent pas travailler 0 heures même si la fonction d'utilité est bonifiée quand *L=0* car *ln(0)* n'est pas défini. Les heures simulées dépendent fortement des paramères arbitraires postulés. Dans ce cas hypothétique, nous avons posé que tous les intrants de la fonction d'utilité ont un effet égal à un, sauf l'âge et le fait d'être une femme qui diminuent la préférence pour le loisir. La modification de ces coefficients affecte la distribution des heures de travail simulée dans cette cohorte.  
+
+# 2. Données du *Labour Force Survey*
+
+Pour cette analyse, nous allons utiliser les données du *Labour Force Survey* pour la province de Québec (*PROV=24*). Afin de ne pas inclure les effets exogènes sur l'économie dus au COVID-19, nous avons téléchargé les données de février 2020. 
+
+Voici une table détaillant les variables extraites:
+
+|Nom de la variable *LFS*|Description|Nom abrégé|
+|-|-|-|
+|AGE_12|||
+|SEX|||
+|EDUC| ||
+|ATOTHRS|||
+|HRLYEARN| ||
+|FINALWT|||
+(à compléter...)
+
+
+
+## Chargement des données
+
+Pour mettre en forme les données, nous avons utilisé la commande *complete.cases* pour enlever les valeurs manquantes. Nous avons également noté *n* le nombre d'individus. 
+
+```{r}
+lfs <- read_csv("./LFS-71M0001-E-2020-February_F1.csv", col_types = cols()) # importe les données du LFS, May 2018
+#lfs <- ds
+lfsqc <- lfs[lfs$PROV==24,] # garde uniquement le Québec
+rm(lfs) # supprime la base initiale de la mémoire
+lfsqc <- lfsqc[,c("AGE_12","SEX","EDUC","ATOTHRS","HRLYEARN","FINALWT")] # garde seulement certaines variables
+n0 <- nrow(lfsqc) # garde le nombre d'observations initiales
+missingweight <- c(lfsqc[!complete.cases(lfsqc),"FINALWT"])[[1]] #garde les poids des individus qui seront enlevés
+lfsqc <- lfsqc[complete.cases(lfsqc), ] # enlève les observations avec des variables manquantes
+lfsqc <- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # sous-échantillonage pour les tests (à commenter pour l'analyse finale)
+n <- nrow(lfsqc) # nombre d'individus dans la base
+wage <- as.numeric(lfsqc$HRLYEARN) # salaire horaire
+Xmat <- matrix(c(lfsqc$AGE_12,lfsqc$SEX,lfsqc$EDUC),n,3) # matrice des variables explicatives
+Xmat <- matrix(c(rep(1,n),Xmat),n,4) # ajoute une constante
+k <- 4 # nombre de variables explicatives (incluant la constante)
+Xmat[,3] <- as.numeric(Xmat[,3]==2) # recode la variable "sex": 1=femme, 0=homme
+corfact <- sum(lfsqc$FINALWT)/(sum(lfsqc$FINALWT)+sum(missingweight))
+wght <- as.numeric(lfsqc$FINALWT)/corfact # calcule les poids approximatifs (les val. manquantes sont parfaitement aléatoires)
+
+summary(cbind(Xmat,wage)) # résumé des variables
+```
+
+## Statistiques descriptives
+
+
+
+
+# 3. Règles fiscales québécoises
+
+## Palliers d'imposition provinciaux et fédéraux
+
+Nous allons aussi utiliser les taux de taxe et paliers suivants:
+
+```{r}
+  # source1: http://www.nrgcpa.ca/deductions-a-la-source-et-charges-sociales
+  # source2: http://www4.gouv.qc.ca/FR/Portail/Citoyens/Evenements/immigrer-au-quebec/Pages/programme-aide-sociale.aspx
+
+  # taux de taxe QC
+  pp1 <- 0.15
+  pp2 <- 0.2
+  pp3 <- 0.24
+  pp4 <- 0.2575
+
+  # seuils de taxation QC
+  p1 <- 15532
+  p2 <- 44545
+  p3 <- 89080
+  p4 <- 108390
+
+  # taux de taxe CAN
+  pt1 <- 0.15
+  pt2 <- 0.2050
+  pt3 <- 0.26
+  pt4 <- 0.29
+  pt5 <- 0.33
+
+  # seuils de taxation CAN
+  f1 <- 12298
+  f2 <- 48535
+  f3 <- 97069
+  f4 <- 150473
+  f5 <- 214368
+
+  as <- 1 # =1 programme aide sociale, =0 si enlève aide sociale
+```
+
+## Transferts
+```{r}
+
+transferts <- function(inc){
+  #Crédit TPS-TVH - a completer, je voulais juste voir si la fonction fonctionnait bien :)
+  ctps<-0
+  ctc<-0
+  ctfm<-0
+  ctce<-0
+  
+  #Prime au travail maximal
+  if (2400<inc & inc<19456) ptps <- 914.11 else ptps <- 0
+  if (3600<inc & inc<30217) ptc <- 1426.90 else ptc <- 0
+  if (2400<inc & inc<35680) ptfm <- 2539.2 else ptfm <- 0
+  if (3600<inc & inc<49044) ptce <- 3303 else ptce <- 0
+  #total PT
+  PrimeTravail<-ptps+ptc+ptfm+ptce
+  
+  #Allocation canadienne pour les trvailleurs
+  if (inc<23458) (if (inc>12060) actps <- min(2280, ((inc-2400)*0.274)-((inc-12060)*0.20)) else actps <-2280) else actps <- 0
+  if (inc<36308) (if (inc>18520) actc <- min(3558, ((inc-3600)*0.274)-((inc-18520)*0.20)) else actc <-3558) else actc <- 0
+  if (inc<18305) (if (inc>12065) actfm <- min(1248, ((inc-2400)*0.15)-((inc-12065)*0.20)) else actfm <-1248) else actfm <- 0
+  if (inc<27629) (if (inc>18540) actce <- min(1818, ((inc-3600)*0.14)-((inc-18540)*0.20)) else actce <-1818) else actce <- 0
+  
+  
+  #Allocation canadienne pour enfants
+  
+  
+  #Allocation famille
+  if (inc<125592) (if (inc>49842) afce <- max(1000, min(2515,2515-(inc-49842)*0.04)) else afce <- 2515) else afce <- 0
+  if (inc<87381) (if (inc>36256) affm <- max(1352, min(3397, 3397-(inc-36256)*0.04)) else affm <- 3397) else affm <- 0
+  
+  #Crédit solidarité
+  if(inc<35400) csps <- 718 else csps <- min(718,max(718-((inc-35400)*0.06)/12),ctps)
+  if(inc<35400) csc <- 841 else csc <- min(841, max(841-((inc-35400)*0.06)/12),ctc)
+  if(inc<35400) csfm <- 996 else csfm <- min(996, max(996-((inc-35400)*0.06)/12),ctfm)
+  if(inc<35400) csce <-1119 else csce <- min(1119, max(1119-((inc-35400)*0.06)/12),ctce)
+  #total CS
+  CreditSolidarite<-csps+csc+csfm+csce
+
+  transferts <- PrimeTravail+ CreditSolidarite
+  return(transferts)
+}
+```
+
+## Calcul du revenu net
+```{r}
+itax <- function(inc){
+  # Calcule les impôts sur le revenu
+   
+  if (inc<=f1){
+    prv <- 0
+    fed <- 0
+  }
+  if (inc>f1 & inc<=p1){
+    prv <- 0
+    fed <- pt1*(inc-f1)
+  }
+  if (inc>p1 & inc<=p2){
+    prv <- pp1*(inc-p1)
+    fed <- pt1*(inc-f1)
+  }
+  else if (inc>p2 & inc<=f2){
+    prv <- pp1*(p2-p1) + pp2*(inc-p2)
+    fed <- pt1*(inc-f1)
+  }
+  else if (inc>f2 & inc<=p3){
+    prv <- pp1*(p2-p1) + pp2*(inc-p2)
+    fed <- pt1*(f2-f1) + pt2*(inc-f2)
+  }
+  else if (inc>p3 & inc<=f3){
+    prv <- pp1*(p2-p1) + pp2*(p3-p2) + pp3*(inc-p3)
+    fed <- pt1*(f2-f1) + pt2*(inc-f2)
+  }
+  else if (inc>f3 & inc<=p4){
+    prv <- pp1*(p2-p1) + pp2*(p3-p2) + pp3*(inc-p3)
+    fed <- pt1*(f2-f1) + pt2*(f3-f2) + pt3*(inc-f3)
+  }
+  else if (inc>p4 & inc<=f4){
+    prv <- pp1*(p2-p1) + pp2*(p3-p2) + pp3*(p4-p3) + pp4*(inc-p4)
+    fed <- pt1*(f2-f1) + pt2*(f3-f2) + pt3*(inc-f3)
+  }
+  else if (inc>f4 & inc<=f5){
+    prv <- pp1*(p2-p1) + pp2*(p3-p2) + pp3*(p4-p3) + pp4*(inc-p4)
+    fed <- pt1*(f2-f1) + pt2*(f3-f2) + pt3*(f4-f3) + pt4*(inc-f4)
+  }
+  else if (inc>f5){
+    prv <- pp1*(p2-p1) + pp2*(p3-p2) + pp3*(p4-p3) + pp4*(inc-p4)
+    fed <- pt1*(f2-f1) + pt2*(f3-f2) + pt3*(f4-f3) + pt4*(f5-f4) + pt5*(inc-f5)
+  }
+  aemploi <- min(54200,inc)*0.012
+  rrq <- 0 #max(min(58700,inc)-3500,0)*0.057
+  rqap <- min(78500,inc)*0.00494
+  
+  asociale <- max(690*12 - max(inc-200*12,0),0)*as
+  tax <-  prv + fed + aemploi + rrq + rqap - asociale -transferts(inc)
+  return(c(tax,prv,fed,aemploi,rrq,rqap,asociale, transferts(inc)))
+}
+```
+
+Cette fonction de taxe prend en compte les paliers d'imposition fédéraux (*fed*) et québécois (*prv*), ainsi que les contributions à l'assurance emploi (*aemploi*), au RQAP (*rqap*) et, finalement, le programme d'aide sociale (*asociale*). Notez que la contribution au RRQ (*rrq*) est commentée puique cela dépend de l'hypothèse faite sur la substituabilité intertemporelle des individus.
+
+## Taux marginaux effectifs d'imposition
+
+Notez qu'on peut directement voir l'impact de la fonction de taxe, sans hypothèses sur le comportement des individus en regardant les taux marginaux effectifs (TME) d'imposition. Le code suivant crée un graphique pour des incréments salariaux annuels de *incr* jusqu'à un revenu annuel de *imax* \$
+
+```{r}
+tme <- function(incr,imax){
+  # calcule les taux marginaux effectifs d'imposition, par incréments de "incr"$, jusqu'à imax$
+  incm <- seq(0,imax,by=incr) # vecteur des niveaux de revenus
+  tax <- sapply(incm,function(x) itax(x)[1]) # applique la taxe sur chaque niveau de revenu
+  tax2 <- c(tax[2:(length(tax))],0) # décale le taux de taxe
+  deltatax <- tax2-tax # taxe marginale
+  tm <- deltatax/incr # taux marginal effectif
+  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TME')
+  return(list(incm[1:length(incm)-1],tm[1:length(incm)-1]))
+}
+outtme <- tme(100,250000)
+```
+
+
+# 4. Calibration
+
+## Variables générales
+
+Les variables globales sont définies comme suit:
+* *Lmax* est le nombre maximal d'heures qu'il est possible de travailler par année. Nous l'avons fixé à 4250 heures, soit 85 heures par semaine.
+* *weeks* est le nombre de semaines de travail par année, fixé à 50.
+* *lincr* est le nombre minimal d'heures annuelles de travail que l'individu peut ajuster. Nous l'avons fixé à 250 heures par année, soit des incréments de 5 heures par semaine.
+```{r}
+Lmax <- 4250
+weeks <- 50
+lincr <- 250
+```
+
+
+## Processus aléatoires
+
+Pour calibrer le modèle d'offre de travail, nous allons utiliser les données sur les heures travaillées disponibles dans la *Labour Force Survey*. Comme il y a toujours une variabilité dans les données qui ne peut être captée par le modèle théorique, nous ajoutons des processus aléatoires au modèle spécifié plus haut. Pour ce faire, nous supposons des caractéristiques inobservables des individus qui rendent aléatoire la fonction de préférence pour le loisir:
+
+$$\hat{\alpha_{1i}} = \alpha_{1i}+v$$
+où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance $\sigma^2$.
+
+Nous supposons aussi que la fonction d'utilité elle-même a un terme d'erreur $\xi_i$:
+
+$$\hat{U}_i(C,L)=U_i(C,L)+\xi_i,$$
+
+où $\xi_i$ est une loi d'extremum généralisée de type I (Loi de Gumbel). L'utilisation de cette règle de distribution est motivée dans l'article de Clavet, Duclos et Lacroix et repose sur la sur-représentation de valeurs extrèmes dans les données observées sur l'offre de travail. 
+
+## Méthode des moments généralisés simulés
+
+Nous allons calibrer le modèle théorique avec les données du *LFS*. Essentiellement, il s'agit de trouver les valeurs de $\beta$ et de $\theta$ afin que les heures travaillées simulées par le modèle d'offre de travail basé sur la théorie économique soient le plus près possible des données observées dans le *LFS*. Pour ce faire, nous utilisons la méthode des moments généralisés, qui consiste à fixer certains paramètres de la distribution, comme la moyenne et l'écart-type et à sélectionner les valeurs de $\beta$ et de $\theta$ qui reproduisent ces *moments.* 
+
+Comme la population du sondage est diversifiée et que les caractéristiques individuelles influencent formement les préférences pour le loisir, il faut inclure plusieurs variables dans le modèle. Dans ce cas, il y a plusieurs combinaisons de $\beta$ et de $\theta$ qui permettent de répliquer la moyenne et l'écart-type des heures travaillées. On dit que le modèle est *sous-identifié*. Pour que le modèle soit identifié, il nous faut au minimum autant de moments que de paramètres à estimer. En multipliant le vecteur des heures travaillées par la matrice des caractéristiques individuelles, on obtient facilement des moments intuitifs.
+
+Le code suivant génère les moments associés en prenant soin de pondérer les moyennes et l'écart-type, puisque es individus ne sont pas également représentatifs de la population.
+
+```{r eval=FALSE, echo=TRUE}
+rhours <- as.numeric(lfsqc$ATOTHRS)*weeks # nombre d'heures annuelles sur une base de 'weeks' semaines de travail
+wrhours <- rhours*wght
+rwse <-  sqrt((sum(wght*(rhours^2))/sum(wght))-(sum(wrhours)/sum(wght))^2)
+#rmoments <- c(colSums(matrix(rep(wrhours,k),n,k)*Xmat)/sum(wght),rwse,sum(as.numeric(rhours>=1750&rhours<=2000)*wght)/sum(wght),sum(as.numeric(rhours==0)*wght)/sum(wght)) # calcul des moments
+rmoments <- c(colSums(matrix(rep(wrhours,k),n,k)*Xmat)/sum(wght),rwse,sum(as.numeric(rhours==2000)*wght)/sum(wght),sum(as.numeric(rhours==0)*wght)/sum(wght)) # calcul des moments
+print(rmoments)
+```
+
+On a donc 9 moments ici:
+
+1. moyenne(heures travaillées)
+
+2. moyenne(heures travaillées $\times$ age)
+
+3. moyenne(heures travaillées $\times$ age<sup>2</sup>)
+
+4. moyenne(heures travaillées -- femme)
+
+5. moyenne(heures travaillées -- >1 enfant préscolaire)
+
+6. moyenne(heures travaillées $\times$ niveau d'éducation)
+
+7. écart-type(heures travaillées)
+
+8. moyenne(travaille entre 35 et 40h / semaine)
+
+9. moyenne(ne travaille pas)
+
+
+On veut donc choisir une valeur de $\theta$ telle que les moments simulés par le modèle soient proche des moments dans les données. Malgré que nous ayons autant de moments que de paramètres, nous ne pouvons en général pas être certains qu'il existe une unique solution de $\theta$ . C'est pour cela que nous parlons habituellement de *calibration* et non d'*estimation* du modèle. En pratique, la calibration s'opère comme une estimation classique, i.e. nous allons minimiser la distance entre les moments simulés et les moments observés:
+
+$$
+GMM(\theta)=(\mathbb{E}Moments(\theta)-Moments)'(\mathbb{E}Moments(\theta)-Moments)
+$$
+où $\mathbb{E}Moments(\theta)$ est la moyenne des moments simulés pour différents tirages des $\varepsilon_i$ et $Moments$ sont les moments des données. La procédure est donc de minimiser $GMM(\theta)$. Voici le code R associé:
+
+```{r eval=FALSE, echo=TRUE}
+wrapi <- function(i,sim,alpha,theta){
+    u <- as.numeric(umarginal(i,lincr,alpha,theta)[[3]])+as.numeric(erreur[[sim]][i,])*exp(theta[k+1]) # utilité pour chaque niveau d'heures travaillées
+      # notez ici le changement de variable "exp(theta[6])" afin de s'assurer que l'écart-type soit toujours un chiffre positif.
+    h <- (which(u==max(u))-1)*lincr # heures travaillées qui maximisent l'utilité
+    return(min(h))
+}
+simhours <- function(theta){
+  alpha <- exp(as.numeric(Xmat%*%matrix(theta[1:k],k,1))) # simulation des préférences alpha pour chaque individu
+  moments <- rep(0,length(theta)) # vecteur de zéros qui va contenir la moyenne des moments simulés
+  for (sim in 1:nsim){
+     hours <- as.numeric(sapply(1:n,function(i) wrapi(i,sim,alpha,theta)))
+     wh <- wght*hours
+     swse <-  sqrt((sum(wght*(hours^2))/sum(wght))-(sum(wh)/sum(wght))^2)
+     #moments <- moments + c(colSums(matrix(rep(wh,k),n,k)*Xmat)/sum(wght),swse,sum(as.numeric(hours>=1750&hours<=2000)*wght)/sum(wght),sum(as.numeric(hours==0)*wght)/sum(wght)) # calcul des moments     
+    moments <- moments + c(colSums(matrix(rep(wh,k),n,k)*Xmat)/sum(wght),swse,sum(as.numeric(hours==2000)*wght)/sum(wght),sum(as.numeric(hours==0)*wght)/sum(wght)) # calcul des moments     
+  }
+  moments <- moments/nsim # fait la moyenne
+  return(moments)
+}
+
+distrhours <- function(theta){
+  moments <- simhours(theta) # moments simulés
+#  gmm <- sum((moments/max(rmoments,rep(1,length(theta)))-rep(1,length(theta)))^2) # distance entre les moments simulés et les moments dans les données
+   gmm <- sum((moments-rmoments)^2) # distance entre les moments simulés et les moments dans les données
+  return(gmm)
+}
+```
+
+```{r eval=FALSE, echo=TRUE}
+summary(exp(as.numeric(Xmat%*%matrix(theta0[1:k],k,1))))
+```
+
+Rappelez vous qu'un choc aléatoire est ajouté à $\alpha_i$ pour tenir compte de l'hétérogénéité inobservée. Une bonne pratique est de simuler les erreurs d'abord afin qu'elles soient les mêmes pour chaque évaluation des différentes valeurs de $\theta$ et ainsi éviter les problèmes numérique pour un nombre faible de simulations.
+
+```{r}
+####### Dernières variables globales #######
+nsim <- 1
+erreur <- vector("list", nsim)
+erreur2 <- vector("list",nsim)
+for (s in 1:nsim){
+  erreur[[s]] <- matrix(rnorm(n*(Lmax/lincr)),n,(Lmax/lincr))
+  erreur2[[s]] <- rnorm(n)
+}
+```
+
+On peut donc maintenant lancer la calibration.
+
+```{r eval=FALSE, echo=TRUE}
+thetatry <- c(0.01239040, -0.01531411,  0.01137535,  0.01061802,  0.01987626,  0.01161269, 0.01602443)
+thetatry[4] <- thetatry[4]+0.01
+thetatry[k+2] <- thetatry[k+2]+1
+thetatry[k+3] <- thetatry[k+3]+0.7
+#out <- optim(thetatry, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
+#thetatry <- out$par
+#print(out)
+```
+
+On voit la valeur calibrée de theta dans $out\$ par$ et la valeur de la fonction objective dans $out\$ value$. On peut maintenant voir les moments simulés (moyenne sur *nsim* simulations) et les moments réels avec le code suivant:
+
+```{r eval=FALSE, echo=TRUE}
+print(thetatry)
+print(simhours(thetatry))
+print(rmoments)
+```
+
+On voit donc que la majorité des moments sont bien simulés, sauf que le modèle produit trop de variation dans les heures travaillées: l'écart-type des heures travaillées est très grand. Regardons la distribution réelle des heures travaillées.
+
+```{r eval=FALSE, echo=TRUE}
+hist(rhours)
+print(max(rhours))
+```
+
+On voit bien la masse importante juste avant 2000 heures de travail (i.e. 40 heures par semaine pendant 50 semaines), ce qui est intuitivement clair. Le code suivant nous donne un exemple de distribution des heures travaillées données par le modèle.
+
+```{r eval=FALSE, echo=TRUE}
+simwork <- function(theta,sim){
+    hours <- rep(0,n) # vecteur de zéros qui va contenir les heures travaillées simulées
+    alpha <- exp(as.numeric(Xmat%*%matrix(theta[1:k],k,1))) # simulation des préférences alpha pour chaque individu
+    for (i in 1:n){
+      u <- umarginal(i,lincr,alpha,theta)[[3]]+as.numeric(erreur[[sim]][i,])*exp(theta[k+1]) # utilité pour chaque niveau d'heures travaillées
+      h <- (which(u==max(u))-1)*lincr # heures travaillées qui maximisent l'utilité
+      hours[i] <- h # conserve dans le vecteur
+    }
+    return(hours)
+}
+hist(simwork(thetatry,1))
+```
+
+## Comparaison des résultats observés et simulés
+
+Pour l'instant, la valeur estimée de $\theta$ nous donne une distribution des heures travaillées, ce qui nous permet de calculer les taxes, le bien-être et beaucoup d'autre variables.
+
+```{r eval=FALSE, echo=TRUE}
+makestats <- function(theta){
+   stats_var <- matrix(0,n,4)
+   for (sim in 1:nsim){
+     h <- simwork(theta,sim)
+     inc <- h*wage
+     t <- sapply(inc,function(x) itax(x)[1])
+     alpha <- exp(as.numeric(Xmat%*%matrix(theta[1:k],k,1)))
+     u <- sapply(1:n, function(i) Utilite(i,h[i],alpha,theta))
+     stats_var[,1] <- stats_var[,1] + (sort(h)/nsim)
+     stats_var[,2] <- stats_var[,2] +(sort(u)/nsim)
+     stats_var[,3] <- stats_var[,3] +(sort(inc)/nsim)
+     stats_var[,4] <- stats_var[,4] +(sort(t)/nsim)
+   }
+   return(stats_var)
+}
+matstats <- makestats(thetatry)
+colnames(matstats) <- c("heures travaillées","utilité","revenu brut","taxes et transferts")
+summary(matstats)
+```
+
+Cela nous donne donc des données intéressantes à comparer. Vous pouvez aussi naturellement vous intéresser à d'autres variables comme par exemple l'indice de Gini. Faites par contre attention d'utiliser correctement les poids échantillonaux lorsque vous travaillez avec des variables globales!
+
+
+# 5. Réforme #1 : Revenu minimum garanti
+
+## Nouvelles règles fiscales
+
+
+On a donc une valeur de $\theta$ qui permet de répliquer les moments observés dans les données et de donner quelques statistiques descriptives de l'économie simulée. On peut donc maintenant commencer à faire des analyses de réformes. À titre d'exemple, ici, enlevons le programme d'aide sociale.
+
+```{r}
+as <- 0
+```
+
+### Modification des TMEI:
+
+```{r }
+outtme <- tme(100,250000)
+```
+
+## Simulations du modèle d'offre de travail
+On peut donc utiliser le modèle pour voir les changements anticipés sur les valeurs des moments.
+
+```{r eval=FALSE, echo=TRUE}
+print(simhours(thetatry))
+```
+
+On peut aussi voir les autres statistiques prédites:
+
+```{r eval=FALSE, echo=TRUE}
+matstats_noas <- makestats(thetatry)
+colnames(matstats_noas) <- c("heures travaillées","utilité","revenu brut","taxes et transferts")
+summary(matstats_noas)
+```
+
+En particulier, ici on voit que tous se sont mis à travailler. C'est une conséquence directe de l'hypothèse sur l'utilité: sans aide sociale, ne pas travailler implique une consommation nulle et une utilité de -Infini. Les individus sont donc prêts à tout pour arriver à consommer. Remettons l'histograme des heures travaillées (simulées) sur le modèle avec assurance emploi:
+
+```{r eval=FALSE, echo=TRUE}
+hist(matstats[,1])
+```
+
+```{r eval=FALSE, echo=TRUE}
+hist(matstats_noas[,1])
+```
+
+# 6. Réforme #2: Prime à l'emploi
+
+# 7. Réforme #3: Combinaison de RMG et prime à l'emploi
+
+# 8. Comparaisons des réformes
