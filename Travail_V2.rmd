@@ -268,10 +268,16 @@ Nous allons aussi utiliser les taux de taxe et paliers suivants:
 
 transferts <- function(inc){
   #Crédit TPS-TVH - a completer, je voulais juste voir si la fonction fonctionnait bien :)
-  ctps<-0
-  ctc<-0
-  ctfm<-0
-  ctce<-0
+  if (inc<47527) ((if (inc>9590 & inc<38507) ctps <- min(451, 296+((inc-9590)*0.02)) else ctps <-296) if (inc>38507) ctps <- min(451, 451-((inc-38507)*0.05))) else ctps<-0
+  if (inc<50347) (if (inc>38507) ctc <- min(592, 592-((inc-38507)*0.05)) else ctc <-592) else ctc<-0
+  if (inc<53447) (if (inc>38507) ctfm <- min(747, 747-((inc-38507)*0.05)) else ctfm <-747) else ctfm<-0
+  if (inc<53447) (if (inc>38507) ctce <- min(747, 747-((inc-38507)*0.05)) else ctce <-747) else ctce<-0
+  #total CT
+  Crédit TPS/TVH<-ctps+ctc+ctfm+ctce
+  
+  #Il a été assumé qu'il y avait 1 enfant lorsque applicable.
+  #Pour ctfm, il a été assumé que le parent monoparental demandait le crédit pour personne à charge de 296$ pour son enfant au lieu du crédit par enfant de 155$. Il y avait également un crédit supplémentaire pour célibataire de 155$ applicable.
+  
   
   #Prime au travail maximal
   if (2400<inc & inc<19456) ptps <- 914.11 else ptps <- 0
@@ -301,6 +307,7 @@ transferts <- function(inc){
   
   #Aucune distinction entre famille monoparentale et couple
   #Un seul des parents reçoit l'allocation, généralement la femme.
+
   
   
   #Allocation famille
