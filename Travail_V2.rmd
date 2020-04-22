@@ -89,7 +89,7 @@ qui sera saturée à l'optimum. La fonction de taxation $t(w_iL_i)$ est  une fon
 ```{r}
 Y <- function(i,L){
   # Calcule la consommation nette (revenu disponible)
-  dispo <- L*wage[i]-itax(L*wage[i])[1]
+  dispo <- L*wage[i]-itax(L*wage[i],i)[1]
   return(dispo)
 }
 ```
@@ -137,7 +137,7 @@ Voici un jeu de données fictives (10 observations) sur lesquelles nous avons te
 
 ```{r}
 #Fonction de taxation temporaire: aucune taxe
-itax<- function(inc){
+itax<- function(inc,i){
   return(0)
 }
 
@@ -167,7 +167,7 @@ for (i in 1:n) {
 
 hist(Lopt, 
      main="Heures optimales simulées", 
-     xlab="Heures de travail", 
+     xlab="Heures de travail annuelles", 
      xlim=c(100,4000),
      las=1, 
      breaks=10)
@@ -175,60 +175,12 @@ hist(Lopt,
 
 Dans cet exemple, les individus ne peuvent pas travailler 0 heures même si la fonction d'utilité est bonifiée quand *L=0* car *ln(0)* n'est pas défini. Les heures simulées dépendent fortement des paramères arbitraires postulés. Dans ce cas hypothétique, nous avons posé que tous les intrants de la fonction d'utilité ont un effet égal à un, sauf l'âge et le fait d'être une femme qui diminuent la préférence pour le loisir. La modification de ces coefficients affecte la distribution des heures de travail simulée dans cette cohorte.  
 
-# 2. Données du *Labour Force Survey*
 
-Pour cette analyse, nous allons utiliser les données du *Labour Force Survey* pour la province de Québec (*PROV=24*). Afin de ne pas inclure les effets exogènes sur l'économie dus au COVID-19, nous avons téléchargé les données de février 2020. 
-
-Voici une table détaillant les variables extraites:
-
-|Nom de la variable *LFS*|Description|Nom abrégé|
-|-|-|-|
-|AGE_12|||
-|SEX|||
-|EDUC| ||
-|ATOTHRS|||
-|HRLYEARN| ||
-|FINALWT|||
-(à compléter...)
-
-
-
-## Chargement des données
-
-Pour mettre en forme les données, nous avons utilisé la commande *complete.cases* pour enlever les valeurs manquantes. Nous avons également noté *n* le nombre d'individus. 
-
-```{r}
-lfs <- read_csv("./LFS-71M0001-E-2020-February_F1.csv", col_types = cols()) # importe les données du LFS, May 2018
-#lfs <- ds
-lfsqc <- lfs[lfs$PROV==24,] # garde uniquement le Québec
-rm(lfs) # supprime la base initiale de la mémoire
-lfsqc <- lfsqc[,c("AGE_12","SEX","EDUC","ATOTHRS","HRLYEARN","FINALWT")] # garde seulement certaines variables
-n0 <- nrow(lfsqc) # garde le nombre d'observations initiales
-missingweight <- c(lfsqc[!complete.cases(lfsqc),"FINALWT"])[[1]] #garde les poids des individus qui seront enlevés
-lfsqc <- lfsqc[complete.cases(lfsqc), ] # enlève les observations avec des variables manquantes
-lfsqc <- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # sous-échantillonage pour les tests (à commenter pour l'analyse finale)
-n <- nrow(lfsqc) # nombre d'individus dans la base
-wage <- as.numeric(lfsqc$HRLYEARN) # salaire horaire
-Xmat <- matrix(c(lfsqc$AGE_12,lfsqc$SEX,lfsqc$EDUC),n,3) # matrice des variables explicatives
-Xmat <- matrix(c(rep(1,n),Xmat),n,4) # ajoute une constante
-k <- 4 # nombre de variables explicatives (incluant la constante)
-Xmat[,3] <- as.numeric(Xmat[,3]==2) # recode la variable "sex": 1=femme, 0=homme
-corfact <- sum(lfsqc$FINALWT)/(sum(lfsqc$FINALWT)+sum(missingweight))
-wght <- as.numeric(lfsqc$FINALWT)/corfact # calcule les poids approximatifs (les val. manquantes sont parfaitement aléatoires)
-
-summary(cbind(Xmat,wage)) # résumé des variables
-```
-
-## Statistiques descriptives
-
-
-
-
-# 3. Règles fiscales québécoises
+# 2. Règles fiscales québécoises
 
 ## Palliers d'imposition provinciaux et fédéraux
 
-Nous allons aussi utiliser les taux de taxe et paliers suivants:
+Nous allons utiliser les taux de taxe et paliers suivants:
 
 ```{r}
   # source1: http://www.nrgcpa.ca/deductions-a-la-source-et-charges-sociales
@@ -259,23 +211,25 @@ Nous allons aussi utiliser les taux de taxe et paliers suivants:
   f3 <- 97069
   f4 <- 150473
   f5 <- 214368
-
-  as <- 1 # =1 programme aide sociale, =0 si enlève aide sociale
+  
 ```
 
 ## Transferts
+La liste des principaux transferts fédéraux et provinciaux est tirée de l'étude «TAUX MARGINAUX EFFECTIFS D’IMPOSITION : UNE COMPARAISON QUÉBEC-ONTARIO » de Blancquaert, Clavet, Duclos, Fortin et Marchand (2017). 
+La plupart des transferts dépendent du type de ménage. Pour les ménages avec enfants, nous avons supposé un  nombre de 1 enfant par ménage. Comme le LFS est une enquête sur les individus et non les ménages, les transferts destinés à des couples ont été divisés par deux de ne pas distribuer en double les montants.
+
 ```{r}
 
-transferts <- function(inc){
-  #Crédit TPS-TVH - a completer, je voulais juste voir si la fonction fonctionnait bien :)
-  if (inc<47527) ((if (inc>9590 & inc<38507) ctps <- min(451, 296+((inc-9590)*0.02)) else ctps <-296) if (inc>38507) ctps <- min(451, 451-((inc-38507)*0.05))) else ctps<-0
+transferts <- function(inc,i){
+  #Crédit TPS-TVH - 
+  
+  if (inc<47527) (if (inc < 38507) (if (inc>9590) ctps <- min(451, 296+((inc-9590)*0.02)) else ctps <-296 ) else ctps <- min(451, 451-((inc-38507)*0.05))) else ctps <- 0
   if (inc<50347) (if (inc>38507) ctc <- min(592, 592-((inc-38507)*0.05)) else ctc <-592) else ctc<-0
   if (inc<53447) (if (inc>38507) ctfm <- min(747, 747-((inc-38507)*0.05)) else ctfm <-747) else ctfm<-0
   if (inc<53447) (if (inc>38507) ctce <- min(747, 747-((inc-38507)*0.05)) else ctce <-747) else ctce<-0
   #total CT
-  Crédit TPS/TVH<-ctps+ctc+ctfm+ctce
+  TPS_TVH<-ctps*ps[i]+ctc*c[i]+ctfm*fm[i]+ctce*ce[i]
   
-  #Il a été assumé qu'il y avait 1 enfant lorsque applicable.
   #Pour ctfm, il a été assumé que le parent monoparental demandait le crédit pour personne à charge de 296$ pour son enfant au lieu du crédit par enfant de 155$. Il y avait également un crédit supplémentaire pour célibataire de 155$ applicable.
   
   
@@ -285,34 +239,44 @@ transferts <- function(inc){
   if (2400<inc & inc<35680) ptfm <- 2539.2 else ptfm <- 0
   if (3600<inc & inc<49044) ptce <- 3303 else ptce <- 0
   #total PT
-  PrimeTravail<-ptps+ptc+ptfm+ptce
+  PrimeTravail<-ptps*ps[i]+ptc*c[i]+ptfm*fm[i]+ptce*ce[i]
   
   #Allocation canadienne pour les trvailleurs
   if (inc<23458) (if (inc>12060) actps <- min(2280, ((inc-2400)*0.274)-((inc-12060)*0.20)) else actps <-2280) else actps <- 0
   if (inc<36308) (if (inc>18520) actc <- min(3558, ((inc-3600)*0.274)-((inc-18520)*0.20)) else actc <-3558) else actc <- 0
   if (inc<18305) (if (inc>12065) actfm <- min(1248, ((inc-2400)*0.15)-((inc-12065)*0.20)) else actfm <-1248) else actfm <- 0
   if (inc<27629) (if (inc>18540) actce <- min(1818, ((inc-3600)*0.14)-((inc-18540)*0.20)) else actce <-1818) else actce <- 0
-  
+  #total AC
+  AllocationTravailleurs <- actps*ps[i]+actc*c[i]+actfm*fm[i]+actce*ce[i]
   
   #Allocation canadienne pour enfants
+  # aucune allocation si pas d'enfant
   aceps<-0
   acec<-0
+  #Aucune distinction entre famille monoparentale et couple
+
   #Enfant de moins de 6 ans
-  if (inc<199183) ((if (inc>31711 & inc<68708) acece6 <- min(6765, (6765-(inc-31711)*0.07) else acece6 <-6765) (if (inc>68708) acece6 <- min(4175.21, (4175.21-(inc-68708)*0.032) else acece6 <-4175.21) else acece6 <-0
-  if (inc<199183) ((if (inc>31711 & inc<68708) acefm6 <- min(6765, (6765-(inc-31711)*0.07) else acefm6 <-6765) (if (inc>68708) acefm6 <- min(4175.21, (4175.21-(inc-68708)*0.032) else acefm6 <-4175.21) else acefm6 <-0
+    if (inc<199183)     (if (inc<68708)       (if (inc >31711) ace6 <- min(6765, (6765-(inc-31711)*0.07)) else ace6 <-6765)    else ace6 <- min(4175.21, (4175.21-(inc-68708)*0.032)))   else ace6 <-0
+
   
   #Enfant de 6 à 17 ans
-  if (inc<166152) ((if (inc>31711 & inc<68708) acece17 <- min(5708, (5708-(inc-31711)*0.07) else acece17 <-5708) (if (inc>68708) acece17 <- min(3118.21, (3118.21-(inc-68708)*0.032) else acece17 <-3118.21) else acece17 <-0
-  if (inc<166152) ((if (inc>31711 & inc<68708) acefm17 <- min(5708, (5708-(inc-31711)*0.07) else acefm17 <-5708) (if (inc>68708) acefm17 <- min(3118.21, (3118.21-(inc-68708)*0.032) else acefm17 <-3118.21) else acefm17 <-0
+      if (inc<166152)     (if (inc<68708)     (if (inc >31711) ace17 <- min(5708, (5708-(inc-31711)*0.07)) else ace17 <-6765)    else ace17 <- min(3118.21, (3118.21-(inc-68708)*0.032)))   else ace17 <-0
   
-  #Aucune distinction entre famille monoparentale et couple
-  #Un seul des parents reçoit l'allocation, généralement la femme.
+  # Comme on suppose que chaque ménage a seulement 1 enfant, s'il y en a un. 
+  # son age est inferieur a 6 si prescolaire a 1 et plus grand que 6 sinon
+  ace<- ace6*prescolaire[i]+ace17*(1-prescolaire[i])
+  
+  #Total ACE
+  #Normalement, un seul des parents reçoit l'allocation, généralement la femme, mais dans ce cas on divise entre les 2 parents
+  ACE <- (ace*ce[i])/2 + ace*fm[i]
 
   
   
   #Allocation famille
   if (inc<125592) (if (inc>49842) afce <- max(1000, min(2515,2515-(inc-49842)*0.04)) else afce <- 2515) else afce <- 0
   if (inc<87381) (if (inc>36256) affm <- max(1352, min(3397, 3397-(inc-36256)*0.04)) else affm <- 3397) else affm <- 0
+  #Total AF
+  AllocationFamille <- afce*ce[i] + affm*fm[i]
   
   #Crédit solidarité
   if(inc<35400) csps <- 718 else csps <- min(718,max(718-((inc-35400)*0.06)/12),ctps)
@@ -320,16 +284,16 @@ transferts <- function(inc){
   if(inc<35400) csfm <- 996 else csfm <- min(996, max(996-((inc-35400)*0.06)/12),ctfm)
   if(inc<35400) csce <-1119 else csce <- min(1119, max(1119-((inc-35400)*0.06)/12),ctce)
   #total CS
-  CreditSolidarite<-csps+csc+csfm+csce
+  CreditSolidarite<-csps*ps[i]+csc*c[i]+csfm*fm[i]+csce*ce[i]
 
-  transferts <- PrimeTravail+ CreditSolidarite
+  transferts <- TPS_TVH +PrimeTravail+ AllocationTravailleurs+ ACE+ AllocationFamille+ CreditSolidarite
   return(transferts)
 }
 ```
 
 ## Calcul du revenu net
 ```{r}
-itax <- function(inc){
+itax <- function(inc,i){
   # Calcule les impôts sur le revenu
    
   if (inc<=f1){
@@ -376,31 +340,137 @@ itax <- function(inc){
   rrq <- 0 #max(min(58700,inc)-3500,0)*0.057
   rqap <- min(78500,inc)*0.00494
   
-  asociale <- max(690*12 - max(inc-200*12,0),0)*as
-  tax <-  prv + fed + aemploi + rrq + rqap - asociale -transferts(inc)
-  return(c(tax,prv,fed,aemploi,rrq,rqap,asociale, transferts(inc)))
+  asociale <- max(690*12 - max(inc-200*12,0),0)
+  tax <-  prv + fed + aemploi + rrq + rqap - asociale -transferts(inc,i)
+  
+  return(c(tax,prv,fed,aemploi,rrq,rqap,asociale, transferts(inc,i)))
 }
 ```
 
-Cette fonction de taxe prend en compte les paliers d'imposition fédéraux (*fed*) et québécois (*prv*), ainsi que les contributions à l'assurance emploi (*aemploi*), au RQAP (*rqap*) et, finalement, le programme d'aide sociale (*asociale*). Notez que la contribution au RRQ (*rrq*) est commentée puique cela dépend de l'hypothèse faite sur la substituabilité intertemporelle des individus.
+Cette fonction de taxe prend en compte les paliers d'imposition fédéraux (*fed*) et québécois (*prv*), ainsi que les contributions à l'assurance emploi (*aemploi*), au RQAP (*rqap*) et, finalement, le programme d'aide sociale (*asociale*). Notez que la contribution au RRQ (*rrq*) est commentée puique cela dépend de l'hypothèse faite sur la substituabilité intertemporelle des individus. 
+ ***à compléter***
 
 ## Taux marginaux effectifs d'imposition
 
 Notez qu'on peut directement voir l'impact de la fonction de taxe, sans hypothèses sur le comportement des individus en regardant les taux marginaux effectifs (TME) d'imposition. Le code suivant crée un graphique pour des incréments salariaux annuels de *incr* jusqu'à un revenu annuel de *imax* \$
 
 ```{r}
-tme <- function(incr,imax){
+tme <- function(incr,imax,i){
   # calcule les taux marginaux effectifs d'imposition, par incréments de "incr"$, jusqu'à imax$
   incm <- seq(0,imax,by=incr) # vecteur des niveaux de revenus
-  tax <- sapply(incm,function(x) itax(x)[1]) # applique la taxe sur chaque niveau de revenu
+  tax <- sapply(incm,function(x) itax(x,i)[1]) # applique la taxe sur chaque niveau de revenu
   tax2 <- c(tax[2:(length(tax))],0) # décale le taux de taxe
   deltatax <- tax2-tax # taxe marginale
   tm <- deltatax/incr # taux marginal effectif
-  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TME')
+  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI',ylim=c(-0.2,1.5))
   return(list(incm[1:length(incm)-1],tm[1:length(incm)-1]))
 }
-outtme <- tme(100,250000)
+
+# graphique des TMEI par type de ménage, suppose des enfants <6 ans
+ps<- c(1,0,0,0)
+c <-  c(0,1,0,0)
+fm <- c(0,0,1,0)
+ce <- c(0,0,0,1)
+prescolaire <- c(0,0,1,1)
+
+for (i in 1:4) {
+  tme(100,250000,i)  
+}
+
 ```
+
+# 3. Données du *Labour Force Survey*
+
+Pour cette analyse, nous allons utiliser les données du *Labour Force Survey* pour la province de Québec (*PROV=24*). Afin de ne pas inclure les effets exogènes sur l'économie dus au COVID-19, nous avons téléchargé les données de février 2020. 
+
+Voici une table détaillant les variables extraites:
+
+|Nom de la variable *LFS*|Description|Nom abrégé|
+|-|-|-|
+|AGE_12|Âge regroupé en 12 tranches de 5 ans (1=15-19 ans; 2=20-24; 3=25-29; 4=30-34; 5=35-39; 6=40-44, 7=45-49; 8=50-54; 9=55-59; 10=60-64; 11=65-69; 12=>70)|age|
+|SEX|Égale à 1 si l'individu est une femme|sexe|
+|EDUC|Niveau le plus élevé d'études atteint (1=0-8 ans; 2=Éduaction secondaire quelconque; 3=Secondaire complété; 4=certificat ou diplome postsecondaire; 5=Baccalauréat; 6=Études supérieures)|educ|
+|AGYOWNK|Age de l'enfant le plus jeune (1=<6ans; 2=6-12; 3=13-17; 4=18-24)|prescolaire|
+|EFAMTYPE|Type de ménage (1,15,17,18=Célibtaire; 2,4,5,7,8,10,11,13=Couple; 3,6,9,12= Couple avec enfant(s), 14,16=Ménage monoparental)|ps, c, fm et ce|
+|SCHOOLN|Statut d'étudiant (1=non-étudiant; 2=Temps plein; 3=Temps partiel)|etudes|
+|ATOTHRS|Nombre d'heures hebdomadaires travaillées|heures|
+|HRLYEARN|Salaire horaire de l'employé|wage|
+|FINALWT|Poids de l'individu dans l'échantillon|wght|
+
+
+
+
+## Chargement des données
+Les données contiennent un total de 17865 observations. Nous retirons les étudiants car leur offre de travail ne serait pas compatible avec le modèle théorique postulé. Pour ce faire, nous leur assignons une valeur manquante dans la colonne *SCHOOLN* afin que ces individus soient supprimés par la commande *complete.cases*. Cette dernière enlève les valeurs manquantes. En enlevant ces observations qui ont des valeurs manquantes, nous prenons soin de conserver leurs poids afin de repondérer les autres individus. Pour les tests, nous avons tiré un échantillon de 1000 individus. L'analyse finale a été effectuée sur l'ensemble des observations. Dans les deux cas, nous avons également noté *n* le nombre d'individus dans l'échantillon courant. 
+
+```{r}
+lfs <- read_csv("./LFS-71M0001-E-2020-February_F1.csv", col_types = cols()) # importe les données du LFS, Fevrier 2020
+lfsqc <- lfs[lfs$PROV==24,] # garde uniquement le Québec
+rm(lfs) # supprime la base initiale de la mémoire
+lfsqc <- lfsqc[,c("AGE_12","SEX","EDUC","ATOTHRS","HRLYEARN","EFAMTYPE","SCHOOLN","AGYOWNK","FINALWT")]  # garde seulement certaines variables
+
+# enleve les etudiants
+lfsqc$SCHOOLN[lfsqc$SCHOOLN != 1] <- NA
+n0 <- nrow(lfsqc) # garde le nombre d'observations initiales
+missingweight <- c(lfsqc[!complete.cases(lfsqc),"FINALWT"])[[1]] #garde les poids des individus qui seront enlevés
+lfsqc <- lfsqc[complete.cases(lfsqc), ] # enlève les observations avec des variables manquantes
+lfsqc <- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # sous-échantillonage pour les tests (à commenter pour l'analyse finale)
+n <- nrow(lfsqc) # nombre d'individus dans la base
+
+# Ajustement des poids des individus
+corfact <- sum(lfsqc$FINALWT)/(sum(lfsqc$FINALWT)+sum(missingweight))
+wght <- as.numeric(lfsqc$FINALWT)/corfact # calcule les poids approximatifs (les val. manquantes sont parfaitement aléatoires)
+```
+
+À partir d'une base de données complète (sans valeurs manquantes), nous créons des vecteurs pour les variables du modèle théorique et celles essentielles à la modélisation des règles fiscales québécoises et canadiennes. Les données sont conservées en vecteurs séparés pour faciliter leur utilisation dans les différentes fonctions programmées. L'ensemble des variables explicatrices est rassemblé dans la matrice *Xmat* afin de décrire rapidement l'ensemble des variables. 
+
+```{r}
+
+# Creer des vecteurs des variables
+wage <- as.numeric(lfsqc$HRLYEARN) # salaire horaire
+age <- as.numeric(lfsqc$AGE_12) # age regroupé en tranches de 5 ans de 15-19 ans(1) a >70 (12)
+sexe <- ifelse(lfsqc$SEX == 1, 1, 0) # Code les femmes = 1, hommes =0
+prescolaire <- ifelse(lfsqc$AGYOWNK == 1, 1, 0) # enfant le plus jeune <6 ans, 1= oui, 0=non
+educ <- as.numeric(lfsqc$EDUC) #niveau d'education
+#Type de menage
+#personnes seules
+ps<-ifelse(lfsqc$EFAMTYPE %in% c(1,15,17,18), 1,0)
+
+#Couples sans enfants
+c <- ifelse(lfsqc$EFAMTYPE %in% c(2,4,5,7,8,10,11,13), 1,0)
+
+#Familles monoparentales
+fm <- ifelse(lfsqc$EFAMTYPE %in% c(14,16), 1,0)
+
+#Couples avec enfants (<18 ans)
+ce <- ifelse(lfsqc$EFAMTYPE %in% c(3,6,9,12), 1,0)
+
+#Matrice de covariables en ajoutant une constante de 1
+constante <- rep(1,n)
+Xmat <- as.data.frame( cbind(constante,age, sexe, educ,prescolaire, ps, c, fm, ce ))
+```
+
+## Statistiques descriptives
+
+Voici un résumé des caractéristiques démographiques de l'échantillon :
+
+```{r}
+# résumé des variables démographiques
+
+summary(Xmat) 
+```
+
+Voici la distribution des heures travaillées et des salaires horaires:
+
+```{r}
+hist(wage,
+    main="Distribution des salaires", 
+     xlab="Salaire horaire - Dollars canadiens")
+hist(lfsqc$ATOTHRS,
+    main="Distribution des heures travaillées", 
+     xlab="Nombre d'heures hebdomadaires")
+```
+
 
 
 # 4. Calibration
@@ -437,36 +507,43 @@ Nous allons calibrer le modèle théorique avec les données du *LFS*. Essentiel
 
 Comme la population du sondage est diversifiée et que les caractéristiques individuelles influencent formement les préférences pour le loisir, il faut inclure plusieurs variables dans le modèle. Dans ce cas, il y a plusieurs combinaisons de $\beta$ et de $\theta$ qui permettent de répliquer la moyenne et l'écart-type des heures travaillées. On dit que le modèle est *sous-identifié*. Pour que le modèle soit identifié, il nous faut au minimum autant de moments que de paramètres à estimer. En multipliant le vecteur des heures travaillées par la matrice des caractéristiques individuelles, on obtient facilement des moments intuitifs.
 
-Le code suivant génère les moments associés en prenant soin de pondérer les moyennes et l'écart-type, puisque es individus ne sont pas également représentatifs de la population.
+Le code suivant génère les moments associés en prenant soin de pondérer les moyennes et l'écart-type, puisque les individus ne sont pas également représentatifs de la population.
 
-```{r eval=FALSE, echo=TRUE}
+```{r}
 rhours <- as.numeric(lfsqc$ATOTHRS)*weeks # nombre d'heures annuelles sur une base de 'weeks' semaines de travail
-wrhours <- rhours*wght
+wrhours <- rhours*wght # heures annuelles x poids individuels
+
+k<-ncol(Xmat)
 rwse <-  sqrt((sum(wght*(rhours^2))/sum(wght))-(sum(wrhours)/sum(wght))^2)
-#rmoments <- c(colSums(matrix(rep(wrhours,k),n,k)*Xmat)/sum(wght),rwse,sum(as.numeric(rhours>=1750&rhours<=2000)*wght)/sum(wght),sum(as.numeric(rhours==0)*wght)/sum(wght)) # calcul des moments
-rmoments <- c(colSums(matrix(rep(wrhours,k),n,k)*Xmat)/sum(wght),rwse,sum(as.numeric(rhours==2000)*wght)/sum(wght),sum(as.numeric(rhours==0)*wght)/sum(wght)) # calcul des moments
+rmoments <- c(colSums(matrix(rep(wrhours,k),n,k)*Xmat)/sum(wght),rwse,sum(as.numeric(rhours>=1750 & rhours<=2000)*wght)/sum(wght),sum(as.numeric(rhours==0)*wght)/sum(wght)) # calcul des moments
 print(rmoments)
 ```
 
-On a donc 9 moments ici:
+On a donc 12 moments ici:
 
 1. moyenne(heures travaillées)
 
 2. moyenne(heures travaillées $\times$ age)
 
-3. moyenne(heures travaillées $\times$ age<sup>2</sup>)
+3. moyenne(heures travaillées -- femme)
 
-4. moyenne(heures travaillées -- femme)
+4. moyenne(heures travaillées -- >1 enfant préscolaire)
 
-5. moyenne(heures travaillées -- >1 enfant préscolaire)
+5. moyenne(heures travaillées $\times$ niveau d'éducation)
 
-6. moyenne(heures travaillées $\times$ niveau d'éducation)
+6. moyenne(heures travaillées -- personnes seules)
 
-7. écart-type(heures travaillées)
+7. moyenne(heures travaillées -- couples sans enfant)
 
-8. moyenne(travaille entre 35 et 40h / semaine)
+8. moyenne(heures travaillées -- familles monoparentales)
 
-9. moyenne(ne travaille pas)
+9. moyenne(heures travaillées -- couples avec enfant)
+
+10. écart-type(heures travaillées)
+
+11. moyenne(travaille entre 35 et 40h / semaine)
+
+12. moyenne(ne travaille pas)
 
 
 On veut donc choisir une valeur de $\theta$ telle que les moments simulés par le modèle soient proche des moments dans les données. Malgré que nous ayons autant de moments que de paramètres, nous ne pouvons en général pas être certains qu'il existe une unique solution de $\theta$ . C'est pour cela que nous parlons habituellement de *calibration* et non d'*estimation* du modèle. En pratique, la calibration s'opère comme une estimation classique, i.e. nous allons minimiser la distance entre les moments simulés et les moments observés:
@@ -607,7 +684,7 @@ as <- 0
 ### Modification des TMEI:
 
 ```{r }
-outtme <- tme(100,250000)
+outtme <- tme(100,250000,1)
 ```
 
 ## Simulations du modèle d'offre de travail
