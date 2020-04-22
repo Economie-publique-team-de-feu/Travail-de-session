@@ -28,7 +28,8 @@ Dans ce travail, nous proposons des ajustements au modèle de simulation de l'of
 
 Comme mentionné, les effets de ces réformes seront comparés sur la base de l'offre de travail, de la distribution des revenus dans la société et, si le temps et les données nous le permettent, l'effet en bref sur les finances publiques.
 
-
+#Test Patou
+#Test Patou2
 
 # 0. Chargement des librairies
 
