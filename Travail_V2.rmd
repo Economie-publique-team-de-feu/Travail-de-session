@@ -28,8 +28,6 @@ Dans ce travail, nous proposons des ajustements au modèle de simulation de l'of
 
 Comme mentionné, les effets de ces réformes seront comparés sur la base de l'offre de travail, de la distribution des revenus dans la société et, si le temps et les données nous le permettent, l'effet en bref sur les finances publiques.
 
-#Test Patou
-#Test Patou2
 
 # 0. Chargement des librairies
 
@@ -60,7 +58,7 @@ $$ \alpha_{1i} =\beta_0 + \beta_1\ln(age) + \beta_2\ln(age)^2 + \beta_3(prescola
 
 Où *prescolaire>0* est une variable indicatrice égale à 1 si l'individu a au moins un enfant d'âge préscolaire à sa charge, *sexe* est une indicatrice égale à 1 si l'individu est une femme et *educ* réflète le niveau d'éducation. 
 
-Pour coder la fonction d'utilité, la vecteur de coefficients est noté $\theta = (\alpha_2, \alpha_3, \alpha_4, \gamma_0, \gamma_f)$ et le coefficient $\alpha_{1i}$ est codé dans une fonction séparée *alpha1*, qui elle dépend d'un vecteur de coefficients $\beta=(\beta_0, \beta_1, \beta_2, \beta_3, \beta_4, \beta_5)$.
+Pour coder la fonction d'utilité, la vecteur de coefficients est noté $\theta = (\alpha_2, \alpha_3, \alpha_4, \gamma_0, \gamma_f, \sigma_L)$ où $\sigma^2_L$ est l'écart-type des heures travaillées. Le coefficient $\alpha_{1i}$ est codé dans une fonction séparée *alpha1*, qui elle dépend d'un vecteur de coefficients $\beta=(\beta_0, \beta_1, \beta_2, \beta_3, \beta_4, \beta_5)$.
 
 ```{r}
 Utilite <- function(i,L,beta,theta){
@@ -145,7 +143,7 @@ itax<- function(inc,i){
 #Vecteurs de coefficients arbitraires
 Lmax=4000
 beta <- c(1, -1, 1, 1, -1, 1)
-theta <- c(1, 1, 1, 1, 1)
+theta <- c(rep(1,6))
 
 #Données aléatoires
 #Enlever le seed pour voir plusieurs tirages et le graphique s'adapter
@@ -479,13 +477,20 @@ hist(lfsqc$ATOTHRS,
 ## Variables générales
 
 Les variables globales sont définies comme suit:
+
 * *Lmax* est le nombre maximal d'heures qu'il est possible de travailler par année. Nous l'avons fixé à 4250 heures, soit 85 heures par semaine.
+
 * *weeks* est le nombre de semaines de travail par année, fixé à 50.
+
 * *lincr* est le nombre minimal d'heures annuelles de travail que l'individu peut ajuster. Nous l'avons fixé à 250 heures par année, soit des incréments de 5 heures par semaine.
+
+* *nsim* est le nombre de simulations que nous allons faire pour déterminer les valeurs optimales de $\beta$ et de $\theta$. Nous l'avons fixé à 100. 
+
 ```{r}
 Lmax <- 4250
 weeks <- 50
 lincr <- 250
+nsim <- 100
 ```
 
 
@@ -494,21 +499,31 @@ lincr <- 250
 Pour calibrer le modèle d'offre de travail, nous allons utiliser les données sur les heures travaillées disponibles dans la *Labour Force Survey*. Comme il y a toujours une variabilité dans les données qui ne peut être captée par le modèle théorique, nous ajoutons des processus aléatoires au modèle spécifié plus haut. Pour ce faire, nous supposons des caractéristiques inobservables des individus qui rendent aléatoire la fonction de préférence pour le loisir:
 
 $$\hat{\alpha_{1i}} = \alpha_{1i}+v$$
-où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance $\sigma^2$.
+où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance 1.
+La matrice *ErreurAlpha* pour le coefficient $\hat{\alpha_{1i}}$ contient un terme d'Erreur pour chaque individu à chaque simulation et est construite par le code suivant:
 
-Nous supposons aussi que la fonction d'utilité elle-même a un terme d'erreur $\xi_i$:
+```{r}
+erreurA <- matrix(rnorm(n*nsim), nsim, n)
+```
 
-$$\hat{U}_i(C,L)=U_i(C,L)+\xi_i,$$
 
-où $\xi_i$ est une loi d'extremum généralisée de type I (Loi de Gumbel). L'utilisation de cette règle de distribution est motivée dans l'article de Clavet, Duclos et Lacroix et repose sur la sur-représentation de valeurs extrèmes dans les données observées sur l'offre de travail. 
+Nous supposons aussi que la fonction d'utilité elle-même a un terme d'erreur $\epsilon_i$:
 
+$$\hat{U}_i(C,L)=U_i(C,L)+\epsilon_i,$$
+
+où $\epsilon_i$ est également un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance $\sigma^2_L$ équivalente à la variance des heures de travail.
+
+```{r}
+ErreurU <- list( rep (matrix(rnorm(Lmax/lincr*nsim), Lmax/lincr, nsim), n))
+# le terme erreurU sera multiplié par l'écart-type des heures travaillées tel que sa variance sera égale à l'écart type au carré.
+```
 ## Méthode des moments généralisés simulés
 
 Nous allons calibrer le modèle théorique avec les données du *LFS*. Essentiellement, il s'agit de trouver les valeurs de $\beta$ et de $\theta$ afin que les heures travaillées simulées par le modèle d'offre de travail basé sur la théorie économique soient le plus près possible des données observées dans le *LFS*. Pour ce faire, nous utilisons la méthode des moments généralisés, qui consiste à fixer certains paramètres de la distribution, comme la moyenne et l'écart-type et à sélectionner les valeurs de $\beta$ et de $\theta$ qui reproduisent ces *moments.* 
 
 Comme la population du sondage est diversifiée et que les caractéristiques individuelles influencent formement les préférences pour le loisir, il faut inclure plusieurs variables dans le modèle. Dans ce cas, il y a plusieurs combinaisons de $\beta$ et de $\theta$ qui permettent de répliquer la moyenne et l'écart-type des heures travaillées. On dit que le modèle est *sous-identifié*. Pour que le modèle soit identifié, il nous faut au minimum autant de moments que de paramètres à estimer. En multipliant le vecteur des heures travaillées par la matrice des caractéristiques individuelles, on obtient facilement des moments intuitifs.
 
-Le code suivant génère les moments associés en prenant soin de pondérer les moyennes et l'écart-type, puisque les individus ne sont pas également représentatifs de la population.
+Le code suivant génère les moments réels pbservés dans l'échantillon en prenant soin de pondérer les moyennes et l'écart-type, puisque les individus ne sont pas également représentatifs de la population.
 
 ```{r}
 rhours <- as.numeric(lfsqc$ATOTHRS)*weeks # nombre d'heures annuelles sur une base de 'weeks' semaines de travail
@@ -552,18 +567,46 @@ On veut donc choisir une valeur de $\theta$ telle que les moments simulés par l
 $$
 GMM(\theta)=(\mathbb{E}Moments(\theta)-Moments)'(\mathbb{E}Moments(\theta)-Moments)
 $$
-où $\mathbb{E}Moments(\theta)$ est la moyenne des moments simulés pour différents tirages des $\varepsilon_i$ et $Moments$ sont les moments des données. La procédure est donc de minimiser $GMM(\theta)$. Voici le code R associé:
+où $\mathbb{E}Moments(\theta)$ est la moyenne des moments simulés pour différents tirages des $\varepsilon_i$ et $Moments$ sont les moments des données. La procédure est donc de minimiser $GMM(\theta)$. 
 
-```{r eval=FALSE, echo=TRUE}
-wrapi <- function(i,sim,alpha,theta){
-    u <- as.numeric(umarginal(i,lincr,alpha,theta)[[3]])+as.numeric(erreur[[sim]][i,])*exp(theta[k+1]) # utilité pour chaque niveau d'heures travaillées
+Premièrement, nous re-codons les fonction *alpha1*, *Utilite* et *umarginal* pour quelles incluent les termes d'erreur. Ensuite, la fonction *wrapi* retourne le nombres d'heures de travail optimales considérant les termes d'erreurs ajoutés.
+
+```{r}
+alphahat<- function(i,beta, sim){
+  alphahat <- alpha1(beta, i)+ erreurA[sim,i]
+  return(alphahat)
+}
+
+uhat <- function(i, L, beta, theta, sim){
+  uhat <- alphahat(i,beta, sim)*log(Lmax-L)+ theta[1]*log((Lmax-L)^2)
+  +theta[2]*log(Y(i,L)) + theta[3]*log((Y(i,L))^2)+ theta[4]*as.numeric(L==0)
+  +theta[5]*as.numeric((L>=1750 & L<=2000))
+  return(uhat)
+}
+
+umarghat <- function(i,incr,beta,theta, sim){
+# calcule l'utilite marginale de l'individu i par increments de incr heures de travail
+  lsup <- seq(0,Lmax,by=incr) # vecteur des heures travaillees
+  util <- sapply(lsup,function(x) uhat(i,x,beta,theta,sim)) 
+  util2 <- c(util[2:(length(util))],0) # decale le vecteur des utilites
+  deltautil <- util2-util # utilite marginale
+  return(list(lsup[1:length(lsup)-1],deltautil[1:length(lsup)-1],util[1:length(lsup)-1]))
+}
+
+#nombre d'heures optimales
+wrapi <- function(i,sim,beta,theta){
+    u <- as.numeric(umarghat(i,lincr,beta,theta,sim)[[3]])+ as.numeric(erreur[[sim]][i,])*exp(theta[k+1]) 
       # notez ici le changement de variable "exp(theta[6])" afin de s'assurer que l'écart-type soit toujours un chiffre positif.
     h <- (which(u==max(u))-1)*lincr # heures travaillées qui maximisent l'utilité
     return(min(h))
 }
+```
+
+Ensuite, la fonction *simhours*
+
+```{r}
 simhours <- function(theta){
-  alpha <- exp(as.numeric(Xmat%*%matrix(theta[1:k],k,1))) # simulation des préférences alpha pour chaque individu
-  moments <- rep(0,length(theta)) # vecteur de zéros qui va contenir la moyenne des moments simulés
+  moments <- rep(0,12) # vecteur de zéros qui va contenir la moyenne des moments simulés
   for (sim in 1:nsim){
      hours <- as.numeric(sapply(1:n,function(i) wrapi(i,sim,alpha,theta)))
      wh <- wght*hours
@@ -587,7 +630,7 @@ distrhours <- function(theta){
 summary(exp(as.numeric(Xmat%*%matrix(theta0[1:k],k,1))))
 ```
 
-Rappelez vous qu'un choc aléatoire est ajouté à $\alpha_i$ pour tenir compte de l'hétérogénéité inobservée. Une bonne pratique est de simuler les erreurs d'abord afin qu'elles soient les mêmes pour chaque évaluation des différentes valeurs de $\theta$ et ainsi éviter les problèmes numérique pour un nombre faible de simulations.
+Rappelez vous qu'un choc aléatoire est ajouté à $\alpha_{1i}$ pour tenir compte de l'hétérogénéité inobservée. Une bonne pratique est de simuler les erreurs d'abord afin qu'elles soient les mêmes pour chaque évaluation des différentes valeurs de $\theta$ et ainsi éviter les problèmes numérique pour un nombre faible de simulations.
 
 ```{r}
 ####### Dernières variables globales #######
