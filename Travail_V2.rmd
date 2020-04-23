@@ -234,17 +234,17 @@ transferts <- function(inc,i){
   
   #Prime au travail maximal
   if (2400<inc & inc<19456) ptps <- 914.11 else ptps <- 0
-  if (3600<inc & inc<30217) ptc <- 1426.90 else ptc <- 0
+  if (3600/2<inc & inc<30217/2) ptc <- 1426.90/2 else ptc <- 0
   if (2400<inc & inc<35680) ptfm <- 2539.2 else ptfm <- 0
-  if (3600<inc & inc<49044) ptce <- 3303 else ptce <- 0
+  if (3600/2<inc & inc<49044/2) ptce <- 3303/2 else ptce <- 0
   #total PT
   PrimeTravail<-ptps*ps[i]+ptc*c[i]+ptfm*fm[i]+ptce*ce[i]
   
   #Allocation canadienne pour les trvailleurs
   if (inc<23458) (if (inc>12060) actps <- min(2280, ((inc-2400)*0.274)-((inc-12060)*0.20)) else actps <-2280) else actps <- 0
-  if (inc<36308) (if (inc>18520) actc <- min(3558, ((inc-3600)*0.274)-((inc-18520)*0.20)) else actc <-3558) else actc <- 0
+  if (inc<36308/2) (if (inc>18520/2) actc <- min(3558/2, ((inc-3600/2)*0.274)-((inc-18520/2)*0.20)) else actc <-3558/2) else actc <- 0
   if (inc<18305) (if (inc>12065) actfm <- min(1248, ((inc-2400)*0.15)-((inc-12065)*0.20)) else actfm <-1248) else actfm <- 0
-  if (inc<27629) (if (inc>18540) actce <- min(1818, ((inc-3600)*0.14)-((inc-18540)*0.20)) else actce <-1818) else actce <- 0
+  if (inc<27629/2) (if (inc>18540/2) actce <- min(1818/2, ((inc-3600/2)*0.14)-((inc-18540/2)*0.20)) else actce <-1818/2) else actce <- 0
   #total AC
   AllocationTravailleurs <- actps*ps[i]+actc*c[i]+actfm*fm[i]+actce*ce[i]
   
@@ -272,7 +272,7 @@ transferts <- function(inc,i){
   
   
   #Allocation famille
-  if (inc<125592) (if (inc>49842) afce <- max(1000, min(2515,2515-(inc-49842)*0.04)) else afce <- 2515) else afce <- 0
+  if (inc<125592/2) (if (inc>49842/2) afce <- max(1000/2, min(2515/2,(2515/2)-(inc-49842/2)*0.04)) else afce <- 2515/2) else afce <- 0
   if (inc<87381) (if (inc>36256) affm <- max(1352, min(3397, 3397-(inc-36256)*0.04)) else affm <- 3397) else affm <- 0
   #Total AF
   AllocationFamille <- afce*ce[i] + affm*fm[i]
