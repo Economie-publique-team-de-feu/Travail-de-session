@@ -757,6 +757,9 @@ hist(matstats_noas[,1])
 ```
 
 # 6. Réforme #2: Prime à l'emploi
+La prime à l'emploi est de 3$/h pour tout individu ayant trouver un emploi et travaillant au moins 30h par semaine. La prime commence à s'appliquer a 30h de travail durant la semaine.
+```{r}
+if (Lopt[i]>30*weeks) PrimeTravail2 <- (Lopt[i]-(30*weeks))*3 else PrimeTravail2 <- 0
 
 # 7. Réforme #3: Combinaison de RMG et prime à l'emploi
 
