@@ -58,22 +58,22 @@ $$ \alpha_{1i} =\beta_0 + \beta_1\ln(age) + \beta_2\ln(age)^2 + \beta_3(prescola
 
 Où *prescolaire>0* est une variable indicatrice égale à 1 si l'individu a au moins un enfant d'âge préscolaire à sa charge, *sexe* est une indicatrice égale à 1 si l'individu est une femme et *educ* réflète le niveau d'éducation. 
 
-Pour coder la fonction d'utilité, la vecteur de coefficients est noté $\theta = (\alpha_2, \alpha_3, \alpha_4, \gamma_0, \gamma_f, \sigma_L)$ où $\sigma^2_L$ est l'écart-type des heures travaillées. Le coefficient $\alpha_{1i}$ est codé dans une fonction séparée *alpha1*, qui elle dépend d'un vecteur de coefficients $\beta=(\beta_0, \beta_1, \beta_2, \beta_3, \beta_4, \beta_5)$.
+Pour coder la fonction d'utilité, la vecteur de coefficients pour les fonctions *Utilite* et *alpha1*, *theta*, est noté $\theta = (\beta_0, \beta_1, \beta_2, \beta_3, \beta_4, \beta_5, \alpha_2, \alpha_3, \alpha_4, \gamma_0, \gamma_f, \sigma_L)$ où $\sigma^2_L$ est l'écart-type des heures travaillées. .
 
 ```{r}
-Utilite <- function(i,L,beta,theta){
+Utilite <- function(i,L,theta){
 # Fonction d'utilité du travail et de la consommation
-      util <- alpha1(i,beta)*log(Lmax-L)+ theta[1]*log((Lmax-L)^2)+  theta[2]*log(Y(i,L)) + theta[3]*log((Y(i,L))^2)+ theta[4]*as.numeric(L==0) + theta[5]*as.numeric((L>=1750 & L<=2000))
+      util <- alpha1(i,theta)*log(Lmax-L)+ theta[7]*log((Lmax-L)^2)+  theta[8]*log(Y(i,L)) + theta[9]*log((Y(i,L))^2)+ theta[10]*as.numeric(L==0) + theta[11]*as.numeric((L>=1750 & L<=2000))
   return(util)
 }
 
-alpha1 <- function(i, beta){
-    alpha1 <- beta[1]+ beta[2]*log(age[i])+ beta[3]*log((age[i])^2)+ beta[4]*prescolaire[i]+ beta[5]*sexe[i] + beta[5]*educ[i]
+alpha1 <- function(i, theta){
+    alpha1 <- theta[1]+ theta[2]*log(age[i])+ theta[3]*log((age[i])^2)+ theta[4]*prescolaire[i]+ theta[5]*sexe[i] + theta[6]*educ[i]
   return(alpha1)
 }
 ```
 
-L'utilité est donnée par une fonction qui prend comme argument l'individu *i*, le nombre d'heures travaillées *L* et le vecteur de coefficients individuels *beta* et le vecteur de paramètres *theta*. *Lmax* est le nombre d'heures travaillées maximales $\bar{L}$.
+L'utilité est donnée par une fonction qui prend comme argument l'individu *i*, le nombre d'heures travaillées *L* et le vecteur de coefficients *theta*. Elle imbrique la fonction *alpha1* qui renvoie le coefficient $\alpha_{1i}$, le coefficient de préférence pour le loisir, en fonction des caractéristiques individuelles. *Lmax* est le nombre d'heures travaillées maximales $\bar{L}$.
 
 ## Contrainte budgétaire
 
@@ -93,7 +93,7 @@ Y <- function(i,L){
 }
 ```
 
-La consommation est une fonction de l'individu *i* (son salaire) et du nombre d'heures travaillées *L*. Elle dépend aussi de la taxation du revenu par la fonction *taxe*, qui sera définie à la section 3 sur les règles fiscales qubécoises et canadiennes. 
+La consommation est une fonction de l'individu *i* (son salaire) et du nombre d'heures travaillées *L*. Elle dépend aussi de la taxation du revenu par la fonction *itax*, qui sera définie à la section 2 sur les règles fiscales qubécoises et canadiennes. 
 
 ## Maximisation sous contrainte
 
@@ -112,10 +112,10 @@ On voit donc que le $\alpha_{1i}$ permet à deux individus ayant le même salair
 Cependant, nous supposons ici un modèle d'offre de travail à choix discrets, comme dans l'étude de Clavet, Duclos et Lacroix. En effet, les individus en réalité ne peuvent ajuster leurs heures de travail que de façon discrète (des heures entières). Puisque ce sont des heures annuelles, ce n'est pas une hypothèse très forte. La fonction suivante évalue l'utilité pour différents choix d'heure de travail:
 
 ```{r}
-umarginal <- function(i,incr,beta,theta){
+umarginal <- function(i,incr,theta){
 # calcule l'utilite marginale de l'individu i par increments de incr heures de travail
   lsup <- seq(0,Lmax,by=incr) # vecteur des heures travaillees
-  util <- sapply(lsup,function(x) Utilite(i,x,beta,theta)) # evalue l'utilite pour chaque niveau d'heures travaillees
+  util <- sapply(lsup,function(x) Utilite(i,x,theta)) # evalue l'utilite pour chaque niveau d'heures travaillees
   util2 <- c(util[2:(length(util))],0) # decale le vecteur des utilites
   deltautil <- util2-util # utilite marginale
   return(list(lsup[1:length(lsup)-1],deltautil[1:length(lsup)-1],util[1:length(lsup)-1]))
@@ -126,9 +126,15 @@ umarginal <- function(i,incr,beta,theta){
 La fonction prend comme arguments l'individu *i*, la variation discrète annuelle des heures qu'il est possible de travailler *incr*, que le vecteur de préférences individuelles *beta* et le vecteur de paramètre de la fonction d'utilité *theta*. La fonction retourne une liste de trois éléments. Premièrement, *lsup*, le vecteur des heures travaillées auxquelles la fonction est évaluée. Deuxièmement, *deltautil* est l'utilité marginale entre $L$ et $L+1$ heures travaillées. Troisièmement, *util* est l'utilité évaluée à chaque valeur de *lsup*. Le nombres d'heures optimales travaillées *Loptimal* est simplement la valeur de *L* qui est associée à la plus grande utilité:
 
 ```{r}
-Loptimal <- function(lsup, util){
-  position <- which(util==max(util)) #utilite maximale
-  return(lsup[position]) 
+
+Loptimal <-function(i,incr, theta){
+  #vecteur des utilités pour chaque heure de travail  
+  u <- as.numeric(umarginal(i,incr,theta)[[3]]) 
+  lsup <- as.numeric(umarginal(i,incr,theta)[[1]]) 
+  # heures minimales travailles qui maximisent l'utilite
+  position <- which(u==max(u)) #utilite maximale
+  h<-min(lsup[position])
+  return(h) 
 }
 ```
 
@@ -142,8 +148,9 @@ itax<- function(inc,i){
 
 #Vecteurs de coefficients arbitraires
 Lmax=4000
-beta <- c(1, -1, 1, 1, -1, 1)
-theta <- c(rep(1,6))
+lincr=100
+theta <- c(1, -1, 1, 1, -1, 1, 1 , 1, 1, 1, 1, 1)
+
 
 #Données aléatoires
 #Enlever le seed pour voir plusieurs tirages et le graphique s'adapter
@@ -158,21 +165,18 @@ n<-10
 Lopt<- rep(0, n)
 
 for (i in 1:n) {
-  umarg <- umarginal(i,100, beta, theta)
-  lsup<- unlist(umarg[1])
-  util <-unlist(umarg[3] )
-  Lopt[i] <- Loptimal(lsup, util)
+  Lopt[i] <- Loptimal(i, lincr, theta)
 }
 
 hist(Lopt, 
      main="Heures optimales simulées", 
      xlab="Heures de travail annuelles", 
-     xlim=c(100,4000),
+     xlim=c(0,2000),
      las=1, 
      breaks=10)
 ```
 
-Dans cet exemple, les individus ne peuvent pas travailler 0 heures même si la fonction d'utilité est bonifiée quand *L=0* car *ln(0)* n'est pas défini. Les heures simulées dépendent fortement des paramères arbitraires postulés. Dans ce cas hypothétique, nous avons posé que tous les intrants de la fonction d'utilité ont un effet égal à un, sauf l'âge et le fait d'être une femme qui diminuent la préférence pour le loisir. La modification de ces coefficients affecte la distribution des heures de travail simulée dans cette cohorte.  
+Dans cet exemple, les individus ne peuvent pas travailler 0 heures et n'avoir aucun revenu *Y=0* car *ln(0)* n'est pas défini. Les heures simulées dépendent fortement des paramères arbitraires postulés. Dans ce cas hypothétique, nous avons posé que tous les intrants de la fonction d'utilité ont un effet égal à un, sauf l'âge et le fait d'être une femme qui diminuent la préférence pour le loisir. La modification de ces coefficients affecte la distribution des heures de travail simulée dans cette cohorte.
 
 
 # 2. Règles fiscales québécoises
@@ -361,7 +365,8 @@ tme <- function(incr,imax,i){
   tax2 <- c(tax[2:(length(tax))],0) # décale le taux de taxe
   deltatax <- tax2-tax # taxe marginale
   tm <- deltatax/incr # taux marginal effectif
-  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI',ylim=c(-0.2,1.5))
+  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI',#ylim=c(-0.2,1.5)
+       )
   return(list(incm[1:length(incm)-1],tm[1:length(incm)-1]))
 }
 
@@ -471,10 +476,24 @@ hist(lfsqc$ATOTHRS,
 ```
 
 
+## Effet des taxes
+
+```{r}
+weeks <- 50
+rhours <- as.numeric(lfsqc$ATOTHRS)*weeks
+salbrut <- rhours * wage
+
+salnet<- rep(n,0)
+for (j in 1:n) {
+  salnet[j] <- itax(salbrut[j], j)[1]
+}
+hist(salnet)
+```
+
 
 # 4. Calibration
 
-## Variables générales
+## Variables globales
 
 Les variables globales sont définies comme suit:
 
@@ -484,13 +503,16 @@ Les variables globales sont définies comme suit:
 
 * *lincr* est le nombre minimal d'heures annuelles de travail que l'individu peut ajuster. Nous l'avons fixé à 250 heures par année, soit des incréments de 5 heures par semaine.
 
+* *nincr* est le nombre d'incréments (le nombre de sauts) possibles. 
+
 * *nsim* est le nombre de simulations que nous allons faire pour déterminer les valeurs optimales de $\beta$ et de $\theta$. Nous l'avons fixé à 100. 
 
 ```{r}
 Lmax <- 4250
 weeks <- 50
 lincr <- 250
-nsim <- 100
+nincr <- Lmax/lincr +1
+nsim <- 2
 ```
 
 
@@ -498,9 +520,9 @@ nsim <- 100
 
 Pour calibrer le modèle d'offre de travail, nous allons utiliser les données sur les heures travaillées disponibles dans la *Labour Force Survey*. Comme il y a toujours une variabilité dans les données qui ne peut être captée par le modèle théorique, nous ajoutons des processus aléatoires au modèle spécifié plus haut. Pour ce faire, nous supposons des caractéristiques inobservables des individus qui rendent aléatoire la fonction de préférence pour le loisir:
 
-$$\hat{\alpha_{1i}} = \alpha_{1i}+v$$
+$$\hat{\alpha_{1i}} = \alpha_{1i}+v_i$$
 où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance 1.
-La matrice *ErreurAlpha* pour le coefficient $\hat{\alpha_{1i}}$ contient un terme d'Erreur pour chaque individu à chaque simulation et est construite par le code suivant:
+La matrice *ErreurAlpha* pour le coefficient $\hat{\alpha_{1i}}$ contient un terme d'erreur pour chaque individu à chaque simulation et est construite par le code suivant:
 
 ```{r}
 erreurA <- matrix(rnorm(n*nsim), nsim, n)
@@ -514,9 +536,52 @@ $$\hat{U}_i(C,L)=U_i(C,L)+\epsilon_i,$$
 où $\epsilon_i$ est également un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance $\sigma^2_L$ équivalente à la variance des heures de travail.
 
 ```{r}
-ErreurU <- list( rep (matrix(rnorm(Lmax/lincr*nsim), Lmax/lincr, nsim), n))
+erreurU <- replicate(n, matrix(rnorm((nincr)*nsim,0,1), nrow=nincr, ncol=nsim))
 # le terme erreurU sera multiplié par l'écart-type des heures travaillées tel que sa variance sera égale à l'écart type au carré.
 ```
+
+Dans ce cas, nous re-codons les fonctions *alpha1*, *Utilite* et *umarginal* et *Loptimal* pour quelles incluent les termes d'erreur. 
+
+```{r}
+alphahat<- function(i,theta, sim){
+  alphahat <- as.numeric(alpha1(i, theta)) + erreurA[sim,i]*0
+  return(alphahat)
+}
+
+uhat <- function(i, L, theta, sim){
+  uhat <- alphahat(i,theta, sim)*log(Lmax-L)+ theta[7]*log((Lmax-L)^2)
+  +theta[8]*log(Y(i,L)) + theta[9]*log((Y(i,L))^2)+ theta[10]*as.numeric(L==0)
+  +theta[11]*as.numeric((L>=1750 & L<=2000))
+  return(min(0, uhat))
+}
+
+umarghat <- function(i,theta, sim){
+# calcule l'utilite marginale de l'individu i par increments de incr heures de travail
+  lsup <- seq(0,Lmax,by=lincr) # vecteur des heures travaillees
+  util <- sapply(lsup,function(x) uhat(i,x,theta,sim))+ as.numeric(erreurU[,sim,i])*theta[12]*0
+  return(list(lsup,util))
+}
+
+#nombre d'heures optimales
+Lhat <- function(i, theta, sim){
+  #vecteur des utilites pour chaque heure de travail  
+  u <- as.numeric(umarghat(i, theta, sim)[[2]])
+  lsup <- as.numeric(umarghat(i,theta,sim)[[1]]) 
+  # heures minimales travailles qui maximisent l'utilite
+  position <- which(u==max(u)) #utilite maximale
+  h<-min(lsup[position])
+  return(h) 
+}
+
+
+machin<- rep(0, n)
+for (t in 1:length(machin)) {
+  machin[t]<-Lhat(t, theta, 1)
+}
+hist(machin)
+```
+
+
 ## Méthode des moments généralisés simulés
 
 Nous allons calibrer le modèle théorique avec les données du *LFS*. Essentiellement, il s'agit de trouver les valeurs de $\beta$ et de $\theta$ afin que les heures travaillées simulées par le modèle d'offre de travail basé sur la théorie économique soient le plus près possible des données observées dans le *LFS*. Pour ce faire, nous utilisons la méthode des moments généralisés, qui consiste à fixer certains paramètres de la distribution, comme la moyenne et l'écart-type et à sélectionner les valeurs de $\beta$ et de $\theta$ qui reproduisent ces *moments.* 
@@ -530,6 +595,8 @@ rhours <- as.numeric(lfsqc$ATOTHRS)*weeks # nombre d'heures annuelles sur une ba
 wrhours <- rhours*wght # heures annuelles x poids individuels
 
 k<-ncol(Xmat)
+
+#ecart-type des heures ponderees
 rwse <-  sqrt((sum(wght*(rhours^2))/sum(wght))-(sum(wrhours)/sum(wght))^2)
 rmoments <- c(colSums(matrix(rep(wrhours,k),n,k)*Xmat)/sum(wght),rwse,sum(as.numeric(rhours>=1750 & rhours<=2000)*wght)/sum(wght),sum(as.numeric(rhours==0)*wght)/sum(wght)) # calcul des moments
 print(rmoments)
@@ -569,50 +636,17 @@ GMM(\theta)=(\mathbb{E}Moments(\theta)-Moments)'(\mathbb{E}Moments(\theta)-Momen
 $$
 où $\mathbb{E}Moments(\theta)$ est la moyenne des moments simulés pour différents tirages des $\varepsilon_i$ et $Moments$ sont les moments des données. La procédure est donc de minimiser $GMM(\theta)$. 
 
-Premièrement, nous re-codons les fonction *alpha1*, *Utilite* et *umarginal* pour quelles incluent les termes d'erreur. Ensuite, la fonction *wrapi* retourne le nombres d'heures de travail optimales considérant les termes d'erreurs ajoutés.
 
-```{r}
-alphahat<- function(i,beta, sim){
-  alphahat <- alpha1(beta, i)+ erreurA[sim,i]
-  return(alphahat)
-}
-
-uhat <- function(i, L, beta, theta, sim){
-  uhat <- alphahat(i,beta, sim)*log(Lmax-L)+ theta[1]*log((Lmax-L)^2)
-  +theta[2]*log(Y(i,L)) + theta[3]*log((Y(i,L))^2)+ theta[4]*as.numeric(L==0)
-  +theta[5]*as.numeric((L>=1750 & L<=2000))
-  return(uhat)
-}
-
-umarghat <- function(i,incr,beta,theta, sim){
-# calcule l'utilite marginale de l'individu i par increments de incr heures de travail
-  lsup <- seq(0,Lmax,by=incr) # vecteur des heures travaillees
-  util <- sapply(lsup,function(x) uhat(i,x,beta,theta,sim)) 
-  util2 <- c(util[2:(length(util))],0) # decale le vecteur des utilites
-  deltautil <- util2-util # utilite marginale
-  return(list(lsup[1:length(lsup)-1],deltautil[1:length(lsup)-1],util[1:length(lsup)-1]))
-}
-
-#nombre d'heures optimales
-wrapi <- function(i,sim,beta,theta){
-    u <- as.numeric(umarghat(i,lincr,beta,theta,sim)[[3]])+ as.numeric(erreur[[sim]][i,])*exp(theta[k+1]) 
-      # notez ici le changement de variable "exp(theta[6])" afin de s'assurer que l'écart-type soit toujours un chiffre positif.
-    h <- (which(u==max(u))-1)*lincr # heures travaillées qui maximisent l'utilité
-    return(min(h))
-}
-```
-
-Ensuite, la fonction *simhours*
+Pour coder l'espérance des 12 moments simulés selon le vecteur de coefficients *theta*, nous utilisons la fonction *simhours*
 
 ```{r}
 simhours <- function(theta){
   moments <- rep(0,12) # vecteur de zéros qui va contenir la moyenne des moments simulés
   for (sim in 1:nsim){
-     hours <- as.numeric(sapply(1:n,function(i) wrapi(i,sim,alpha,theta)))
+     hours <- as.numeric(sapply(1:n,function(i) Lhat(i,theta,sim)))
      wh <- wght*hours
      swse <-  sqrt((sum(wght*(hours^2))/sum(wght))-(sum(wh)/sum(wght))^2)
-     #moments <- moments + c(colSums(matrix(rep(wh,k),n,k)*Xmat)/sum(wght),swse,sum(as.numeric(hours>=1750&hours<=2000)*wght)/sum(wght),sum(as.numeric(hours==0)*wght)/sum(wght)) # calcul des moments     
-    moments <- moments + c(colSums(matrix(rep(wh,k),n,k)*Xmat)/sum(wght),swse,sum(as.numeric(hours==2000)*wght)/sum(wght),sum(as.numeric(hours==0)*wght)/sum(wght)) # calcul des moments     
+     moments <- moments + c(colSums(matrix(rep(wh,k),n,k)*Xmat)/sum(wght),swse,sum(as.numeric(hours>=1750&hours<=2000)*wght)/sum(wght),sum(as.numeric(hours==0)*wght)/sum(wght)) # calcul des moments     
   }
   moments <- moments/nsim # fait la moyenne
   return(moments)
@@ -620,37 +654,22 @@ simhours <- function(theta){
 
 distrhours <- function(theta){
   moments <- simhours(theta) # moments simulés
-#  gmm <- sum((moments/max(rmoments,rep(1,length(theta)))-rep(1,length(theta)))^2) # distance entre les moments simulés et les moments dans les données
-   gmm <- sum((moments-rmoments)^2) # distance entre les moments simulés et les moments dans les données
+  gmm <- sum((moments-rmoments)^2) # distance entre les moments simulés et les moments dans les données
   return(gmm)
 }
 ```
 
-```{r eval=FALSE, echo=TRUE}
-summary(exp(as.numeric(Xmat%*%matrix(theta0[1:k],k,1))))
-```
 
-Rappelez vous qu'un choc aléatoire est ajouté à $\alpha_{1i}$ pour tenir compte de l'hétérogénéité inobservée. Une bonne pratique est de simuler les erreurs d'abord afin qu'elles soient les mêmes pour chaque évaluation des différentes valeurs de $\theta$ et ainsi éviter les problèmes numérique pour un nombre faible de simulations.
-
-```{r}
-####### Dernières variables globales #######
-nsim <- 1
-erreur <- vector("list", nsim)
-erreur2 <- vector("list",nsim)
-for (s in 1:nsim){
-  erreur[[s]] <- matrix(rnorm(n*(Lmax/lincr)),n,(Lmax/lincr))
-  erreur2[[s]] <- rnorm(n)
-}
-```
-
-On peut donc maintenant lancer la calibration.
+On peut donc maintenant lancer la calibration. L'objectif de la calibration est de minimiser la somme du carré des écarts entre  les moments simulés *moments* et les moments observés *rmoments*. L'optimisation de la fonction *distrhours* qui calcule les GMM se fait par la fonction *optim* qui cherche les valeurs de *theta* qui minimisent la fonction. Nous donnons un vecteur de départ arbitraire *thetahat* et l'algorithme d'optimisation retourne le vecteur de *thetahat* qui minimise les GMM. 
 
 ```{r eval=FALSE, echo=TRUE}
-thetatry <- c(0.01239040, -0.01531411,  0.01137535,  0.01061802,  0.01987626,  0.01161269, 0.01602443)
-thetatry[4] <- thetatry[4]+0.01
-thetatry[k+2] <- thetatry[k+2]+1
-thetatry[k+3] <- thetatry[k+3]+0.7
-#out <- optim(thetatry, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
+# thetatry <- c(0.01239040, -0.01531411,  0.01137535,  0.01061802,  0.01987626,  0.01161269, 0.01602443)
+# thetatry[4] <- thetatry[4]+0.01
+# thetatry[k+2] <- thetatry[k+2]+1
+# thetatry[k+3] <- thetatry[k+3]+0.7
+thetahat <- rep(0.01,12)
+
+out <- optim(thetahat, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
 #thetatry <- out$par
 #print(out)
 ```
