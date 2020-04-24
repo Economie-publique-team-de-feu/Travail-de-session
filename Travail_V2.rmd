@@ -90,7 +90,9 @@ qui sera saturée à l'optimum. La fonction de taxation $t(w_iL_i)$ est une fonc
 Y <- function(i,L){
   # Calcule la consommation nette (revenu disponible)
   dispo <- L*wage[i]-itax(L*wage[i],i)[1]
-  return(dispo)
+  #Empêche la fonction de rendre un nombre négatif
+  Y<- max(1,dispo)
+  return(Y)
 }
 ```
 
@@ -529,12 +531,12 @@ nsim <- 2
 Pour calibrer le modèle d'offre de travail, nous allons utiliser les données sur les heures travaillées disponibles dans le *Labour Force Survey*. Comme il y a toujours une variabilité dans les données qui ne peut être captée par le modèle théorique, nous ajoutons des processus aléatoires au modèle spécifié plus haut. Pour ce faire, nous supposons des caractéristiques inobservables des individus qui rendent aléatoire la fonction de préférence pour le loisir:
 
 $$\hat{\alpha_{1i}} = \alpha_{1i}+v_i$$
-où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance 1.
+où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance 0.01.
 
 La matrice *ErreurAlpha* pour le coefficient $\hat{\alpha_{1i}}$ contient un terme d'erreur pour chaque individu à chaque simulation et est construite par le code suivant:
 
 ```{r}
-erreurA <- matrix(rnorm(n*nsim), nsim, n)
+erreurA <- matrix(rnorm(n*nsim,0,0.01), nsim, n)
 ```
 
 
@@ -542,7 +544,7 @@ Nous supposons aussi que la fonction d'utilité elle-même a un terme d'erreur $
 
 $$\hat{U}_i(C,L)=U_i(C,L)+\epsilon_i,$$
 
-où $\epsilon_i$ est également un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et de variance $\sigma^2_L$ équivalente à la variance des heures de travail.
+où $\epsilon_i$ est également un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et d'écart-type $ln(\sigma^2_L)$ équivalente à la variance des heures de travail.
 
 ```{r}
 erreurU <- replicate(n, matrix(rnorm((nincr)*nsim,0,1), nrow=nincr, ncol=nsim))
@@ -554,7 +556,7 @@ Dans ce cas, nous re-codons les fonctions *alpha1*, *Utilite* et *umarginal* et 
 
 ```{r}
 alphahat<- function(i,theta, sim){
-  alphahat <- as.numeric(alpha1(i, theta)) + erreurA[sim,i]*0
+  alphahat <- as.numeric(alpha1(i, theta)) + erreurA[sim,i]
   return(alphahat)
 }
 
@@ -568,7 +570,7 @@ uhat <- function(i, L, theta, sim){
 umarghat <- function(i,theta, sim){
 # calcule l'utilite marginale de l'individu i par increments de incr heures de travail
   lsup <- seq(0,Lmax,by=lincr) # vecteur des heures travaillees
-  util <- sapply(lsup,function(x) uhat(i,x,theta,sim))+ as.numeric(erreurU[,sim,i])*theta[12]*0
+  util <- sapply(lsup,function(x) uhat(i,x,theta,sim))+ exp(as.numeric(erreurU[,sim,i])*theta[12])
   return(list(lsup,util))
 }
 
@@ -583,20 +585,14 @@ Lhat <- function(i, theta, sim){
   return(h) 
 }
 
-
-machin<- rep(0, n)
-for (t in 1:length(machin)) {
-  machin[t]<-Lhat(t, theta, 1)
-}
-hist(machin)
 ```
 
 
 ## Méthode des moments généralisés simulés
 
-Nous allons calibrer le modèle théorique avec les données du *LFS*. Essentiellement, il s'agit de trouver les valeurs de $\beta$ et de $\theta$ afin que les heures travaillées simulées par le modèle d'offre de travail basé sur la théorie économique soient le plus près possible des données observées dans le *LFS*. Pour ce faire, nous utilisons la méthode des moments généralisés, qui consiste à fixer certains paramètres de la distribution, comme la moyenne et l'écart-type, et à sélectionner les valeurs de $\beta$ et de $\theta$ qui reproduisent ces *moments.* 
+Nous allons calibrer le modèle théorique avec les données du *LFS*. Essentiellement, il s'agit de trouver les valeurs de $\theta$ afin que les heures travaillées simulées par le modèle d'offre de travail basé sur la théorie économique soient le plus près possible des données observées dans le *LFS*. Pour ce faire, nous utilisons la méthode des moments généralisés, qui consiste à fixer certains paramètres de la distribution, comme la moyenne et l'écart-type, et à sélectionner les valeurs de $\theta$ qui reproduisent ces *moments.* 
 
-Comme la population du sondage est diversifiée et que les caractéristiques individuelles influencent fortement les préférences pour le loisir, il faut inclure plusieurs variables dans le modèle. Dans ce cas, il y a plusieurs combinaisons de $\beta$ et de $\theta$ qui permettent de répliquer la moyenne et l'écart-type des heures travaillées. On dit que le modèle est *sous-identifié*. Pour que le modèle soit identifié, il nous faut au minimum autant de moments que de paramètres à estimer. En multipliant le vecteur des heures travaillées par la matrice des caractéristiques individuelles, on obtient facilement des moments intuitifs.
+Comme la population du sondage est diversifiée et que les caractéristiques individuelles influencent fortement les préférences pour le loisir, il faut inclure plusieurs variables dans le modèle. Dans ce cas, il y a plusieurs combinaisons de $\theta$ qui permettent de répliquer la moyenne et l'écart-type des heures travaillées. On dit que le modèle est *sous-identifié*. Pour que le modèle soit identifié, il nous faut au minimum autant de moments que de paramètres à estimer. En multipliant le vecteur des heures travaillées par la matrice des caractéristiques individuelles, on obtient facilement des moments intuitifs.
 
 Le code suivant génère les moments réels observés dans l'échantillon en prenant soin de pondérer les moyennes et l'écart-type, puisque les individus ne sont pas également représentatifs de la population.
 
@@ -678,12 +674,13 @@ On peut donc maintenant lancer la calibration. L'objectif de la calibration est 
 # thetatry[4] <- thetatry[4]+0.01
 # thetatry[k+2] <- thetatry[k+2]+1
 # thetatry[k+3] <- thetatry[k+3]+0.7
-thetahat <- rep(0.01,12)
+thetahat <- rep(0.1, 12)
 
 out <- optim(thetahat, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
 
-#thetatry <- out$par
-#print(out)
+
+thetatry <- out$par
+print(out)
 ```
 
 On voit la valeur calibrée de theta dans $out\$ par$ et la valeur de la fonction objective dans $out\$ value$. On peut maintenant voir les moments simulés (moyenne sur *nsim* simulations) et les moments réels avec le code suivant:
