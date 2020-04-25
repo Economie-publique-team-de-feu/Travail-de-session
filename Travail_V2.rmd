@@ -233,7 +233,7 @@ ce : couple avec enfants
 
 ```{r}
 
-transferts <- function(inc,i){
+transferts <- function(inc, i){
   
   #Crédit TPS-TVH
   TPS_TVH[i] <- 296 # montant de base
@@ -429,6 +429,7 @@ itax <- function(inc,i){
     prv <- pp1*(p2-p1) + pp2*(p3-p2) + pp3*(p4-p3) + pp4*(inc-p4)
     fed <- pt1*(f2-f1) + pt2*(f3-f2) + pt3*(f4-f3) + pt4*(f5-f4) + pt5*(inc-f5)
   }
+  
   aemploi <- min(54200,inc)*0.012
   rrq <- 0 #max(min(58700,inc)-3500,0)*0.057
   rqap <- min(78500,inc)*0.00494
