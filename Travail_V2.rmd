@@ -272,13 +272,13 @@ transferts <- function(inc, i){
     }
   } else if (c[i] == 1){
     if (inc > 3600 & inc < 30217){ # couple
-      PrimeTravail <- min(1363, 0.105*(inc-3600)) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
+      PrimeTravail <- (min(1363, 0.105*(inc-3600)) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
     } else {
       PrimeTravail <- 0
     }
   } else if (ce[i] == 1){
-    if (inc > 3600/2 & inc < 49044/2){ # couple avec enfant, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
-      PrimeTravail <- min(3246, 0.25*(inc-3600)) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
+    if (inc > 3600/2 & inc < 49044/2){ # couple avec enfant
+      PrimeTravail <- (min(3246, 0.25*(inc-3600)) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
     } else {
       PrimeTravail <- 0
     }
@@ -457,7 +457,7 @@ tme <- function(incr,imax,i){
   tax2 <- c(tax[2:(length(tax))],0) # décale le taux de taxe
   deltatax <- tax2-tax # taxe marginale
   tm <- deltatax/incr # taux marginal effectif
-  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI',ylim=c(0,1.5)
+  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI', #ylim=c(0,1.5)
        )
   return(list(incm[1:length(incm)-1],tm[1:length(incm)-1]))
 }
