@@ -459,7 +459,7 @@ tme <- function(incr,imax,i){
   tax2 <- c(tax[2:(length(tax))],0) # décale le taux de taxe
   deltatax <- tax2-tax # taxe marginale
   tm <- deltatax/incr # taux marginal effectif
-  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI', ylim=c(6, 15), xlim=c(24500, 24550)
+  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI'
        )
   return(list(incm[1:length(incm)-1],tm[1:length(incm)-1]))
 }
