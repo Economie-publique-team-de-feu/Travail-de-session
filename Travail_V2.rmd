@@ -252,7 +252,7 @@ transferts <- function(inc, i){
     TPS_TVH <- max(0, TPS_TVH - 0.05*(inc-38507)) # déduction pour haut revenu 
   } 
   if (c[i] == 1 | ce[i] == 1 ) { 
-    TPS_TVH <- TPS_TVH/2 # montant final divisé par 2 si en couple 
+    TPS_TVH <- TPS_TVH / 2 # montant final divisé par 2 si en couple 
   }
   
   
@@ -260,25 +260,25 @@ transferts <- function(inc, i){
   # Bonifie le revenu de travail d'un % à partir d'un seuil, puis diminue de 10% à parti d'un second seuil 
   if (ps[i] == 1){
     if (inc > 2400 & inc < 19456){  # celibataire
-      PrimeTravail <- 0.105*(inc-2400) - max(0, 0.1*(inc-10720))
+      PrimeTravail <- min(874, 0.105*(inc-2400)) - max(0, 0.1*(inc-10720))
     } else {
       PrimeTravail <- 0
     }
   } else if (fm[i] == 1){
     if (inc > 2400 & inc < 36680){ # monoparental
-      PrimeTravail <- 0.30*(inc-2400) - max(0, 0.1*(inc-10720))
+      PrimeTravail <- min(2496, 0.30*(inc-2400)) - max(0, 0.1*(inc-10720))
     } else {
       PrimeTravail <- 0
     }
   } else if (c[i] == 1){
-    if (inc > 3600 & inc < 30217){ # couple, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
-      PrimeTravail <- (0.105*(inc-3600) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
+    if (inc > 3600 & inc < 30217){ # couple
+      PrimeTravail <- min(1363, 0.105*(inc-3600)) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
     } else {
       PrimeTravail <- 0
     }
   } else if (ce[i] == 1){
     if (inc > 3600/2 & inc < 49044/2){ # couple avec enfant, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
-      PrimeTravail <- (0.25*(inc-3600) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
+      PrimeTravail <- min(3246, 0.25*(inc-3600)) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
     } else {
       PrimeTravail <- 0
     }
@@ -287,25 +287,25 @@ transferts <- function(inc, i){
   #Allocation canadienne pour les travailleurs
   if (ps[i] == 1){
     if (inc > 2400 & inc < 23458){ # celibataire
-      AllocationTravailleur <- 0.274*(inc-2400) - max(0, 0.2*(inc-12060))
+      AllocationTravailleur <- min(2280, 0.274*(inc-2400)) - max(0, 0.2*(inc-12060))
     } else {
       AllocationTravailleur <- 0
     }
   } else if (fm[i] == 1){
     if (inc > 2400 & inc < 18305){ # monoparental
-      AllocationTravailleur <- 0.15*(inc-2400) - max(0, 0.2*(inc-12065))
+      AllocationTravailleur <- min(1248, 0.15*(inc-2400)) - max(0, 0.2*(inc-12065))
     } else {
       AllocationTravailleur <- 0
     }
   } else if (c[i] == 1){
-    if (inc > 3600 & inc < 36308){ # couple, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
-      AllocationTravailleur <- (0.274*(inc-3600) - max(0, 0.2*(inc-18520))) / 2
+    if (inc > 3600 & inc < 36308){ # couple
+      AllocationTravailleur <- (min(3558, 0.274*(inc-3600)) - max(0, 0.2*(inc-18520))) / 2
     } else {
       AllocationTravailleur <- 0
     }
   } else if (ce[i] == 1){
-    if (inc > 3600 & inc < 27629){ # couple avec enfant, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
-      AllocationTravailleur <- (0.14*(inc-3600) - max(0, 0.2*(inc-18540))) / 2
+    if (inc > 3600 & inc < 27629){ # couple avec enfant
+      AllocationTravailleur <- (min(1818, 0.14*(inc-3600)) - max(0, 0.2*(inc-18540))) / 2
     } else {
       AllocationTravailleur <- 0
     }
@@ -342,7 +342,7 @@ transferts <- function(inc, i){
     AllocationFamille <- max(AllocationFamille, 1352) # prime minimum
   } else if (ce[i] == 1) {
     AllocationFamille <- 2515 # montant de base pour un enfant
-    if (inc > 49842) { # les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
+    if (inc > 49842) {
       AllocationFamille <- AllocationFamille - 0.04*(inc-49842) # déduction pour haut revenu
     }
     AllocationFamille <- max(AllocationFamille, 1000) / 2 # prime minimum, divisée par 2
@@ -365,14 +365,14 @@ transferts <- function(inc, i){
     } 
   } else if (c[i] == 1) {
     CreditSolidarite <- 297+297+(699) # montant de base
-    if (inc > 35400) { # déduction pour revenu élevé, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
+    if (inc > 35400) { # déduction pour revenu élevé
       # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
       CreditSolidarite <- max(0, 297 + 297 - 0.03*(inc-35400),  CreditSolidarite - 0.06*(inc-35400)) / 2
       # divisé par 2 pour un couple
     }
   } else if (ce[i] == 1) {
     CreditSolidarite <- 297+297+(699+123) # montant de base
-    if (inc > 35400) { # déduction pour revenu élevé, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
+    if (inc > 35400) { # déduction pour revenu élevé
       # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
       CreditSolidarite <- max(0, 297 + 297 - 0.03*(inc-35400),  CreditSolidarite - 0.06*(inc-35400)) / 2
       # disivé par 2 pour un couple
