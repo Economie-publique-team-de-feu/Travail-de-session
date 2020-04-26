@@ -355,7 +355,7 @@ transferts <- function(inc, i){
     CreditSolidarite[i] <- 297+141+(577) # montant de base
     if (inc > 35400) { # déduction pour revenu élevé
       # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
-      CreditSolidarite[i] <- max(0, 2917 + 141 - 0.03*(inc-35400),  CreditSolidarite[i] - 0.06*(inc-35400))
+      CreditSolidarite[i] <- max(0, 297 + 141 - 0.03*(inc-35400),  CreditSolidarite[i] - 0.06*(inc-35400))
     } 
   } else if (fm[i] == 1) { 
     CreditSolidarite[i] <- 297+141+(577+123) # montant de base
@@ -370,7 +370,7 @@ transferts <- function(inc, i){
       CreditSolidarite[i] <- max(0, 297 + 297 - 0.03*(inc-35400),  CreditSolidarite[i] - 0.06*(inc-35400)) / 2
       # divisé par 2 pour un couple
     }
-  } if (ce[i] == 1) {
+  } else if (ce[i] == 1) {
     CreditSolidarite[i] <- 297+297+(699+123) # montant de base
     if (inc > 35400) { # déduction pour revenu élevé
       # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
