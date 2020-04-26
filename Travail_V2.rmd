@@ -277,7 +277,7 @@ transferts <- function(inc, i){
       PrimeTravail <- 0
     }
   } else if (ce[i] == 1){
-    if (inc > 3600/2 & inc < 49044/2){ # couple avec enfant
+    if (inc > 3600 & inc < 49044){ # couple avec enfant
       PrimeTravail <- (min(3246, 0.25*(inc-3600)) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
     } else {
       PrimeTravail <- 0
@@ -367,16 +367,18 @@ transferts <- function(inc, i){
     CreditSolidarite <- 297+297+(699) # montant de base
     if (inc > 35400) { # déduction pour revenu élevé
       # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
-      CreditSolidarite <- max(0, 297 + 297 - 0.03*(inc-35400),  CreditSolidarite - 0.06*(inc-35400)) / 2
+      CreditSolidarite <- max(0, 297 + 297 - 0.03*(inc-35400),  CreditSolidarite - 0.06*(inc-35400))
       # divisé par 2 pour un couple
     }
+    CreditSolidarite <- CreditSolidarite / 2
   } else if (ce[i] == 1) {
     CreditSolidarite <- 297+297+(699+123) # montant de base
     if (inc > 35400) { # déduction pour revenu élevé
       # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
-      CreditSolidarite <- max(0, 297 + 297 - 0.03*(inc-35400),  CreditSolidarite - 0.06*(inc-35400)) / 2
+      CreditSolidarite <- max(0, 297 + 297 - 0.03*(inc-35400),  CreditSolidarite - 0.06*(inc-35400))
       # disivé par 2 pour un couple
     }
+    CreditSolidarite <- CreditSolidarite / 2
   }
 
   transferts <- TPS_TVH + PrimeTravail + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite
@@ -457,7 +459,7 @@ tme <- function(incr,imax,i){
   tax2 <- c(tax[2:(length(tax))],0) # décale le taux de taxe
   deltatax <- tax2-tax # taxe marginale
   tm <- deltatax/incr # taux marginal effectif
-  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI', #ylim=c(6, 50), #xlim=c(68700, 68720)
+  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI', ylim=c(6, 15), xlim=c(24500, 24550)
        )
   return(list(incm[1:length(incm)-1],tm[1:length(incm)-1]))
 }
