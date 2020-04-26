@@ -1,5 +1,5 @@
 ---
-title: "Travail V1"
+title: "Travail V2"
 author: "Patricia Côté, Samy Gallienne, Élodie Gravel, Pascale Laveault-Allard"
 output:
   html_document:
@@ -271,14 +271,14 @@ transferts <- function(inc, i){
       PrimeTravail <- 0
     }
   } else if (c[i] == 1){
-    if (inc > 3600/2 & inc < 30217/2){ # couple, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
-      PrimeTravail <- (0.105*(inc-3600/2) - max(0, 0.1*(inc-16584/2))) / 2 # divisé en 2 pour couple
+    if (inc > 3600 & inc < 30217){ # couple, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
+      PrimeTravail <- (0.105*(inc-3600) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
     } else {
       PrimeTravail <- 0
     }
   } else if (ce[i] == 1){
     if (inc > 3600/2 & inc < 49044/2){ # couple avec enfant, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
-      PrimeTravail <- (0.25*(inc-3600/2) - max(0, 0.1*(inc-16584/2))) / 2 # divisé en 2 pour couple
+      PrimeTravail <- (0.25*(inc-3600) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
     } else {
       PrimeTravail <- 0
     }
@@ -298,14 +298,14 @@ transferts <- function(inc, i){
       AllocationTravailleur <- 0
     }
   } else if (c[i] == 1){
-    if (inc > 3600/2 & inc < 36308/2){ # couple, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
-      AllocationTravailleur <- (0.274*(inc-3600/2) - max(0, 0.2*(inc-18520/2))) / 2
+    if (inc > 3600 & inc < 36308){ # couple, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
+      AllocationTravailleur <- (0.274*(inc-3600) - max(0, 0.2*(inc-18520))) / 2
     } else {
       AllocationTravailleur <- 0
     }
   } else if (ce[i] == 1){
-    if (inc > 3600/2 & inc < 27629/2){ # couple avec enfant, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
-      AllocationTravailleur <- (0.14*(inc-3600/2) - max(0, 0.2*(inc-18540/2))) / 2
+    if (inc > 3600 & inc < 27629){ # couple avec enfant, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
+      AllocationTravailleur <- (0.14*(inc-3600) - max(0, 0.2*(inc-18540))) / 2
     } else {
       AllocationTravailleur <- 0
     }
@@ -342,8 +342,8 @@ transferts <- function(inc, i){
     AllocationFamille <- max(AllocationFamille, 1352) # prime minimum
   } else if (ce[i] == 1) {
     AllocationFamille <- 2515 # montant de base pour un enfant
-    if (inc > 49842/2) { # les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
-      AllocationFamille <- AllocationFamille - 0.04*(inc-49842/2) # déduction pour haut revenu
+    if (inc > 49842) { # les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
+      AllocationFamille <- AllocationFamille - 0.04*(inc-49842) # déduction pour haut revenu
     }
     AllocationFamille <- max(AllocationFamille, 1000) / 2 # prime minimum, divisée par 2
   } else {
@@ -365,16 +365,16 @@ transferts <- function(inc, i){
     } 
   } else if (c[i] == 1) {
     CreditSolidarite <- 297+297+(699) # montant de base
-    if (inc > 35400/2) { # déduction pour revenu élevé, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
+    if (inc > 35400) { # déduction pour revenu élevé, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
       # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
-      CreditSolidarite <- max(0, 297 + 297 - 0.03*(inc-35400/2),  CreditSolidarite - 0.06*(inc-35400/2)) / 2
+      CreditSolidarite <- max(0, 297 + 297 - 0.03*(inc-35400),  CreditSolidarite - 0.06*(inc-35400)) / 2
       # divisé par 2 pour un couple
     }
   } else if (ce[i] == 1) {
     CreditSolidarite <- 297+297+(699+123) # montant de base
-    if (inc > 35400/2) { # déduction pour revenu élevé, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
+    if (inc > 35400) { # déduction pour revenu élevé, les seuil sont divisé par deux puisque le montant représente les revenus totaux du couple
       # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
-      CreditSolidarite <- max(0, 297 + 297 - 0.03*(inc-35400/2),  CreditSolidarite - 0.06*(inc-35400/2)) / 2
+      CreditSolidarite <- max(0, 297 + 297 - 0.03*(inc-35400),  CreditSolidarite - 0.06*(inc-35400)) / 2
       # disivé par 2 pour un couple
     }
   }
@@ -437,7 +437,8 @@ itax <- function(inc,i){
   asociale <- max(690*12 - max(inc-200*12,0),0)
   tax <-  prv + fed + aemploi + rrq + rqap - asociale -transferts(inc,i)
   
-  return(c(tax,prv,fed,aemploi,rrq,rqap,asociale, transferts(inc,i)))
+  return(c(tax,prv,fed,aemploi,rrq,rqap,asociale, transferts(inc,i)
+           ))
 }
 ```
 
@@ -456,7 +457,7 @@ tme <- function(incr,imax,i){
   tax2 <- c(tax[2:(length(tax))],0) # décale le taux de taxe
   deltatax <- tax2-tax # taxe marginale
   tm <- deltatax/incr # taux marginal effectif
-  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI',#ylim=c(-0.2,1.5)
+  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI',ylim=c(0,1.5)
        )
   return(list(incm[1:length(incm)-1],tm[1:length(incm)-1]))
 }
@@ -571,14 +572,17 @@ hist(lfsqc$ATOTHRS,
 
 ```{r}
 weeks <- 50
+#nombre d'heures par année
 rhours <- as.numeric(lfsqc$ATOTHRS)*weeks
-salbrut <- rhours * wage
+
 
 salnet<- rep(n,0)
 for (j in 1:n) {
-  salnet[j] <- itax(salbrut[j], j)[1]
+  salnet[j] <- Y(j, rhours[j])
 }
-hist(salnet)
+hist(salnet,
+     main="Distribution du salaire net annuel", 
+     xlab="Salaire net annuel ($)")
 ```
 
 
@@ -611,10 +615,10 @@ nsim <- 2
 
 Pour calibrer le modèle d'offre de travail, nous allons utiliser les données sur les heures travaillées disponibles dans le *Labour Force Survey*. Comme il y a toujours une variabilité dans les données qui ne peut être captée par le modèle théorique, nous ajoutons des processus aléatoires au modèle spécifié plus haut. Pour ce faire, nous supposons des caractéristiques inobservables des individus qui rendent aléatoire la fonction de préférence pour le loisir:
 
-$$\hat{\alpha_{1i}} = \alpha_{1i}+v_i$$
+$$\hat{\alpha_{1i}} = \alpha_{1i}+e^{v_i}$$
 où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance 0.01.
 
-La matrice *ErreurAlpha* pour le coefficient $\hat{\alpha_{1i}}$ contient un terme d'erreur pour chaque individu à chaque simulation et est construite par le code suivant:
+La matrice *erreurA* pour le coefficient $\hat{\alpha_{1i}}$ contient un terme d'erreur pour chaque individu à chaque simulation et est construite par le code suivant:
 
 ```{r}
 erreurA <- matrix(rnorm(n*nsim,0,0.01), nsim, n)
@@ -637,7 +641,7 @@ Dans ce cas, nous re-codons les fonctions *alpha1*, *Utilite* et *umarginal* et 
 
 ```{r}
 alphahat<- function(i,theta, sim){
-  alphahat <- as.numeric(alpha1(i, theta)) + erreurA[sim,i]
+  alphahat <- as.numeric(alpha1(i, theta)) + exp(erreurA[sim,i])
   return(alphahat)
 }
 
@@ -680,6 +684,8 @@ Le code suivant génère les moments réels observés dans l'échantillon en pre
 ```{r}
 rhours <- as.numeric(lfsqc$ATOTHRS)*weeks # nombre d'heures annuelles sur une base de 'weeks' semaines de travail
 wrhours <- rhours*wght # heures annuelles x poids individuels
+
+#Matrice des caractéristiques individuelles
 Xmat<-Xmat[,1:5]
 k<-ncol(Xmat)
 
@@ -743,13 +749,13 @@ distrhours <- function(theta){
 On peut donc maintenant lancer la calibration. L'objectif de la calibration est de minimiser la somme du carré des écarts entre  les moments simulés *moments* et les moments observés *rmoments*. L'optimisation de la fonction *distrhours* qui calcule les GMM se fait par la fonction *optim* qui cherche les valeurs de *theta* qui minimisent la fonction. Nous donnons un vecteur de départ arbitraire *thetahat* et l'algorithme d'optimisation retourne le vecteur de *thetahat* qui minimise les GMM. 
 
 ```{r}
-# thetatry <- c(0.01239040, -0.01531411,  0.01137535,  0.01061802,  0.01987626,  0.01161269, 0.01602443)
+thetatry <- c(0.01239040, -0.01531411,  0.01137535,  0.01061802,  0.01987626,  0.01161269, 0.01602443, 0.02, 0.5, 0.01, 0.011, 10)
 # thetatry[4] <- thetatry[4]+0.01
 # thetatry[k+2] <- thetatry[k+2]+1
 # thetatry[k+3] <- thetatry[k+3]+0.7
-thetahat <- rep(0.01, 12)
+thetahat <- rep(0.1, 12)
 
-out <- optim(thetahat, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
+out <- optim(thetatry, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
 
 
 thetatry <- out$par
