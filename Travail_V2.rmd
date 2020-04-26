@@ -35,7 +35,7 @@ Comme mentionné, les effets de ces réformes seront comparés sur la base de l'
 library(readr) # package pour lire les .csv
 library(compiler) # package pour le Just-in-time compilation
 enableJIT(3) # Option du package compiler
-set.seed(123) # Pour repliquer les resultats
+set.seed(123) # Pour répliquer les résultats
 
 ```
 
@@ -53,47 +53,50 @@ Où $C_i$ le niveau de consommation (le revenu disponible), $L_i$ est la quantit
 
 Le coefficient $\gamma_0$ permet d'inclure des coûts fixes au travail alors que le coefficient $\gamma_f$ permet de mettre une rigidité au travail à temps plein, défini entre 35 et 40 heures par semaine.
 
-Toujours en s'inspirant de la proposition de Clavet, Duclos et Lacroix , l'hétérogénéité des préférences pour le loisir $\bar{L}-L$ est réflété dans le paramètre $\alpha_{1i}$:
+Toujours en s'inspirant de la proposition de Clavet, Duclos et Lacroix , l'hétérogénéité des préférences pour le loisir $\bar{L}-L$ est reflétée dans le paramètre $\alpha_{1i}$:
 $$ \alpha_{1i} =\beta_0 + \beta_1\ln(age) + \beta_2\ln(age)^2 + \beta_3(prescolaire>0) + \beta_4~sexe + \beta_5~educ $$
 
-Où *prescolaire>0* est une variable indicatrice égale à 1 si l'individu a au moins un enfant d'âge préscolaire à sa charge, *sexe* est une indicatrice égale à 1 si l'individu est une femme et *educ* réflète le niveau d'éducation. 
+Où *prescolaire>0* est une variable indicatrice égale à 1 si l'individu a au moins un enfant d'âge préscolaire à sa charge, *sexe* est une indicatrice égale à 1 si l'individu est une femme et *educ* reflète le niveau d'éducation. 
 
-Pour coder la fonction d'utilité, la vecteur de coefficients est noté $\theta = (\alpha_2, \alpha_3, \alpha_4, \gamma_0, \gamma_f, \sigma_L)$ où $\sigma^2_L$ est l'écart-type des heures travaillées. Le coefficient $\alpha_{1i}$ est codé dans une fonction séparée *alpha1*, qui elle dépend d'un vecteur de coefficients $\beta=(\beta_0, \beta_1, \beta_2, \beta_3, \beta_4, \beta_5)$.
+Pour coder la fonction d'utilité, la vecteur de coefficients pour les fonctions *Utilite* et *alpha1*, *theta*, est noté $\theta = (\beta_0, \beta_1, \beta_2, \beta_3, \beta_4, \beta_5, \alpha_2, \alpha_3, \alpha_4, \gamma_0, \gamma_f, \sigma_L)$ où $\sigma^2_L$ est l'écart-type des heures travaillées. .
+
 
 ```{r}
-Utilite <- function(i,L,beta,theta){
+Utilite <- function(i,L,theta){
 # Fonction d'utilité du travail et de la consommation
-      util <- alpha1(i,beta)*log(Lmax-L)+ theta[1]*log((Lmax-L)^2)+  theta[2]*log(Y(i,L)) + theta[3]*log((Y(i,L))^2)+ theta[4]*as.numeric(L==0) + theta[5]*as.numeric((L>=1750 & L<=2000))
+      util <- alpha1(i,theta)*log(Lmax-L)+ theta[7]*log((Lmax-L)^2)+  theta[8]*log(Y(i,L)) + theta[9]*log((Y(i,L))^2)+ theta[10]*as.numeric(L==0) + theta[11]*as.numeric((L>=1750 & L<=2000))
   return(util)
 }
 
-alpha1 <- function(i, beta){
-    alpha1 <- beta[1]+ beta[2]*log(age[i])+ beta[3]*log((age[i])^2)+ beta[4]*prescolaire[i]+ beta[5]*sexe[i] + beta[5]*educ[i]
+alpha1 <- function(i, theta){
+    alpha1 <- theta[1]+ theta[2]*log(age[i])+ theta[3]*log((age[i])^2)+ theta[4]*prescolaire[i]+ theta[5]*sexe[i] + theta[6]*educ[i]
   return(alpha1)
 }
 ```
 
-L'utilité est donnée par une fonction qui prend comme argument l'individu *i*, le nombre d'heures travaillées *L* et le vecteur de coefficients individuels *beta* et le vecteur de paramètres *theta*. *Lmax* est le nombre d'heures travaillées maximales $\bar{L}$.
+L'utilité est donnée par une fonction qui prend comme argument l'individu *i*, le nombre d'heures travaillées *L* et le vecteur de coefficients *theta*. Elle imbrique la fonction *alpha1* qui renvoie le coefficient $\alpha_{1i}$, le coefficient de préférence pour le loisir, en fonction des caractéristiques individuelles. *Lmax* est le nombre d'heures travaillées maximales $\bar{L}$.
 
 ## Contrainte budgétaire
 
-La consommation (ou revenu disponible) est donnée par la contrainte budgétaire qui dépend du salaire horaire de l'individu $w_i$, de ses heures travailles $L_i$ et de la fonction de taxation $t(\cdot)$:
+La consommation (ou revenu disponible) est donnée par la contrainte budgétaire qui dépend du salaire horaire de l'individu $w_i$, de ses heures travaillées $L_i$ et de la fonction de taxation $t(\cdot)$:
 
 $$
 w_iL_i-t(w_iL_i)\geq C_i
 $$
 
-qui sera saturée à l'optimum. La fonction de taxation $t(w_iL_i)$ est  une fonction non-linéaire du revenu de travail brut.  $w_i$ est le salaire horaire pour chaque individu *i*. Le code R associé à au revenut disponible, assumant que la contrainte budgétaire est serrée, est donné par:
+qui sera saturée à l'optimum. La fonction de taxation $t(w_iL_i)$ est une fonction non linéaire du revenu de travail brut.  $w_i$ est le salaire horaire pour chaque individu *i*. Le code R associé au revenu disponible, assumant que la contrainte budgétaire est serrée, est donné par:
 
 ```{r}
 Y <- function(i,L){
   # Calcule la consommation nette (revenu disponible)
   dispo <- L*wage[i]-itax(L*wage[i],i)[1]
-  return(dispo)
+  #Empêche la fonction de rendre un nombre négatif
+  Y<- max(1,dispo)
+  return(Y)
 }
 ```
 
-La consommation est une fonction de l'individu *i* (son salaire) et du nombre d'heures travaillées *L*. Elle dépend aussi de la taxation du revenu par la fonction *taxe*, qui sera définie à la section 3 sur les règles fiscales qubécoises et canadiennes. 
+La consommation est une fonction de l'individu *i* (son salaire) et du nombre d'heures travaillées *L*. Elle dépend aussi de la taxation du revenu par la fonction *itax*, qui sera définie à la section 2 sur les règles fiscales qubécoises et canadiennes. 
 
 ## Maximisation sous contrainte
 
@@ -101,21 +104,21 @@ Pour maximiser l'utilité de l'individu, on peut substituer la contrainte budgé
 
 $$ U(L_i) = \alpha_{1i}\ln(\bar{L}-L) +\alpha_2\ln(\bar{L}-L)^2+ \alpha_3\ln(w_iL_i-t(w_iL_i))+\alpha_4\ln(w_iL_i-t(w_iL_i))^2 + \gamma_0(L=0) + \gamma_f(L\in[1750,2000])$$
 
-En supposant que *L* est une variable continue, que $t(\cdot)$ est différentiable, et que $\gamma_0=\gamma_f=0$, on peut prendre les conditions de premier ordre et réécrire le taux maginal de substitution entre le loisir $\bar{L}-L$ et la consommation $Y_i$:
+En supposant que *L* est une variable continue, que $t(\cdot)$ est différentiable, et que $\gamma_0=\gamma_f=0$, on peut prendre les conditions de premier ordre et réécrire le taux marginal de substitution entre le loisir $\bar{L}-L$ et la consommation $Y_i$:
 
 $$
 \frac{\bar{L}-L_i}{C_i}=\frac{\bar{L}-L_i}{w_iL_i-t(w_iL_i)}=\frac{\alpha_{1i}+2\alpha_2}{(\alpha_3+2\alpha_4)~w_i(1-t'(w_iL_i))}
 $$
 
-On voit donc que le $\alpha_{1i}$ permet à deux individus ayant le même salaire horaire $w_i$ d'avoir des taux marginaux de substitution entre le loisir et la consommation différents en fonctions de caractéristiques de ces individus. 
+On voit donc que le $\alpha_{1i}$ permet à deux individus ayant le même salaire horaire $w_i$ d'avoir des taux marginaux de substitution entre le loisir et la consommation différents en fonction des caractéristiques de ces individus. 
 
-Cependant, nous supposons ici un modèle d'offre de travail à choix discrets, comme dans l'étude de Clavet, Duclos et Lacroix. En effet, les individus en réalité ne peuvent ajuster leurs heures de travail que de façon discrète (des heures entières). Puisque ce sont des heures annuelles, ce n'est pas une hypothèse très forte. La fonction suivante évalue l'utilité pour différents choix d'heure de travail:
+Cependant, nous supposons ici un modèle d'offre de travail à choix discrets, comme dans l'étude de Clavet, Duclos et Lacroix. En effet, les individus, en réalité, ne peuvent ajuster leurs heures de travail que de façon discrète (des heures entières). Puisque ce sont des heures annuelles, ce n'est pas une hypothèse très forte. La fonction suivante évalue l'utilité pour différents choix d'heures de travail:
 
 ```{r}
-umarginal <- function(i,incr,beta,theta){
+umarginal <- function(i,incr,theta){
 # calcule l'utilite marginale de l'individu i par increments de incr heures de travail
   lsup <- seq(0,Lmax,by=incr) # vecteur des heures travaillees
-  util <- sapply(lsup,function(x) Utilite(i,x,beta,theta)) # evalue l'utilite pour chaque niveau d'heures travaillees
+  util <- sapply(lsup,function(x) Utilite(i,x,theta)) # evalue l'utilite pour chaque niveau d'heures travaillees
   util2 <- c(util[2:(length(util))],0) # decale le vecteur des utilites
   deltautil <- util2-util # utilite marginale
   return(list(lsup[1:length(lsup)-1],deltautil[1:length(lsup)-1],util[1:length(lsup)-1]))
@@ -123,12 +126,19 @@ umarginal <- function(i,incr,beta,theta){
 ```
 
 
-La fonction prend comme arguments l'individu *i*, la variation discrète annuelle des heures qu'il est possible de travailler *incr*, que le vecteur de préférences individuelles *beta* et le vecteur de paramètre de la fonction d'utilité *theta*. La fonction retourne une liste de trois éléments. Premièrement, *lsup*, le vecteur des heures travaillées auxquelles la fonction est évaluée. Deuxièmement, *deltautil* est l'utilité marginale entre $L$ et $L+1$ heures travaillées. Troisièmement, *util* est l'utilité évaluée à chaque valeur de *lsup*. Le nombres d'heures optimales travaillées *Loptimal* est simplement la valeur de *L* qui est associée à la plus grande utilité:
+La fonction prend comme arguments l'individu *i*, la variation discrète annuelle des heures qu'il est possible de travailler *incr*, le vecteur de préférences individuelles *beta* et le vecteur de paramètres de la fonction d'utilité *theta*. La fonction retourne une liste de trois éléments. Premièrement, *lsup*, le vecteur des heures travaillées auxquelles la fonction est évaluée. Deuxièmement, *deltautil* est l'utilité marginale entre $L$ et $L+1$ heures travaillées. Troisièmement, *util* est l'utilité évaluée à chaque valeur de *lsup*. Le nombres d'heures optimales travaillées *Loptimal* est simplement la valeur de *L* qui est associée à la plus grande utilité:
 
 ```{r}
-Loptimal <- function(lsup, util){
-  position <- which(util==max(util)) #utilite maximale
-  return(lsup[position]) 
+
+Loptimal <-function(i,incr, theta){
+  #vecteur des utilités pour chaque heure de travail  
+  u <- as.numeric(umarginal(i,incr,theta)[[3]]) 
+  lsup <- as.numeric(umarginal(i,incr,theta)[[1]]) 
+  # heures minimales travailles qui maximisent l'utilite
+  position <- which(u==max(u)) #utilite maximale
+  h<-min(lsup[position])
+  return(h) 
+
 }
 ```
 
@@ -142,8 +152,9 @@ itax<- function(inc,i){
 
 #Vecteurs de coefficients arbitraires
 Lmax=4000
-beta <- c(1, -1, 1, 1, -1, 1)
-theta <- c(rep(1,6))
+lincr=100
+theta <- c(1, -1, 1, 1, -1, 1, 1 , 1, 1, 1, 1, 1)
+
 
 #Données aléatoires
 #Enlever le seed pour voir plusieurs tirages et le graphique s'adapter
@@ -158,26 +169,24 @@ n<-10
 Lopt<- rep(0, n)
 
 for (i in 1:n) {
-  umarg <- umarginal(i,100, beta, theta)
-  lsup<- unlist(umarg[1])
-  util <-unlist(umarg[3] )
-  Lopt[i] <- Loptimal(lsup, util)
+  Lopt[i] <- Loptimal(i, lincr, theta)
 }
 
 hist(Lopt, 
      main="Heures optimales simulées", 
      xlab="Heures de travail annuelles", 
-     xlim=c(100,4000),
+     xlim=c(0,2000),
      las=1, 
      breaks=10)
 ```
 
-Dans cet exemple, les individus ne peuvent pas travailler 0 heures même si la fonction d'utilité est bonifiée quand *L=0* car *ln(0)* n'est pas défini. Les heures simulées dépendent fortement des paramères arbitraires postulés. Dans ce cas hypothétique, nous avons posé que tous les intrants de la fonction d'utilité ont un effet égal à un, sauf l'âge et le fait d'être une femme qui diminuent la préférence pour le loisir. La modification de ces coefficients affecte la distribution des heures de travail simulée dans cette cohorte.  
+Dans cet exemple, les individus ne peuvent pas travailler 0 heures et n'avoir aucun revenu *Y=0* car *ln(0)* n'est pas défini. Les heures simulées dépendent fortement des paramères arbitraires postulés. Dans ce cas hypothétique, nous avons posé que tous les intrants de la fonction d'utilité ont un effet égal à un, sauf l'âge et le fait d'être une femme qui diminuent la préférence pour le loisir. La modification de ces coefficients affecte la distribution des heures de travail simulée dans cette cohorte.
+
 
 
 # 2. Règles fiscales québécoises
 
-## Palliers d'imposition provinciaux et fédéraux
+## Paliers d'imposition provinciaux et fédéraux
 
 Nous allons utiliser les taux de taxe et paliers suivants:
 
@@ -215,77 +224,162 @@ Nous allons utiliser les taux de taxe et paliers suivants:
 
 ## Transferts
 La liste des principaux transferts fédéraux et provinciaux est tirée de l'étude «TAUX MARGINAUX EFFECTIFS D’IMPOSITION : UNE COMPARAISON QUÉBEC-ONTARIO » de Blancquaert, Clavet, Duclos, Fortin et Marchand (2017). 
-La plupart des transferts dépendent du type de ménage. Pour les ménages avec enfants, nous avons supposé un  nombre de 1 enfant par ménage. Comme le LFS est une enquête sur les individus et non les ménages, les transferts destinés à des couples ont été divisés par deux de ne pas distribuer en double les montants.
+La plupart des transferts dépendent du type de ménage. Pour les ménages avec enfants, nous avons supposé un nombre de 1 enfant par ménage. Comme le LFS est une enquête sur les individus et non sur les ménages, les transferts destinés à des couples ont été divisés par deux de ne pas distribuer en double les montants.
+Les abréviations suivantes ont été utilisées : 
+ps : personne seule
+c : couple sans enfants
+fm : famille monoparentale
+ce : couple avec enfants
 
 ```{r}
 
-transferts <- function(inc,i){
-  #Crédit TPS-TVH - 
+transferts <- function(inc, i){
   
-  if (inc<47527) (if (inc < 38507) (if (inc>9590) ctps <- min(451, 296+((inc-9590)*0.02)) else ctps <-296 ) else ctps <- min(451, 451-((inc-38507)*0.05))) else ctps <- 0
-  if (inc<50347) (if (inc>38507) ctc <- min(592, 592-((inc-38507)*0.05)) else ctc <-592) else ctc<-0
-  if (inc<53447) (if (inc>38507) ctfm <- min(747, 747-((inc-38507)*0.05)) else ctfm <-747) else ctfm<-0
-  if (inc<53447) (if (inc>38507) ctce <- min(747, 747-((inc-38507)*0.05)) else ctce <-747) else ctce<-0
-  #total CT
-  TPS_TVH<-ctps*ps[i]+ctc*c[i]+ctfm*fm[i]+ctce*ce[i]
-  
-  #Pour ctfm, il a été assumé que le parent monoparental demandait le crédit pour personne à charge de 296$ pour son enfant au lieu du crédit par enfant de 155$. Il y avait également un crédit supplémentaire pour célibataire de 155$ applicable.
+  #Crédit TPS-TVH
+  TPS_TVH[i] <- 296 # montant de base
+  if (c[i] == 1 | ce[i] == 1 | fm[i] == 1) { 
+    TPS_TVH[i] <- TPS_TVH[i] + 296 # montant si personne a charge ou monoparental
+    if (ce[i] == 1) {
+      TPS_TVH[i] <- TPS_TVH[i] + 155 # montant si couple a un enfant
+    }
+  }
+  if (ps[i] == 1) {
+    TPS_TVH[i] <- TPS_THV[i] + min(155, max(0, 0.02*(inc-9590))) # prime au travail pour celibataire
+  } else if (fm[i] == 1) {
+    TPS_TVH[i] <- TPS_TVH[i] + 155 # prime au travail si monoparental
+  }
+  if (inc > 38507) {
+    TPS_TVH[i] <- max(0, TPS_TVH[i] - 0.05*(inc-38507)) # déduction pour haut revenu 
+  } 
+  if (c[i] == 1 | ce[i] == 1 ) { 
+    TPS_TVH[i] <- TPS_TVH[i]/2 # montant final divisé par 2 si en couple 
+  }
   
   
   #Prime au travail maximal
-  if (2400<inc & inc<19456) ptps <- 914.11 else ptps <- 0
-  if (3600/2<inc & inc<30217/2) ptc <- 1426.90/2 else ptc <- 0
-  if (2400<inc & inc<35680) ptfm <- 2539.2 else ptfm <- 0
-  if (3600/2<inc & inc<49044/2) ptce <- 3303/2 else ptce <- 0
-  #total PT
-  PrimeTravail<-ptps*ps[i]+ptc*c[i]+ptfm*fm[i]+ptce*ce[i]
-  
-  #Allocation canadienne pour les trvailleurs
-  if (inc<23458) (if (inc>12060) actps <- min(2280, ((inc-2400)*0.274)-((inc-12060)*0.20)) else actps <-2280) else actps <- 0
-  if (inc<36308/2) (if (inc>18520/2) actc <- min(3558/2, ((inc-3600/2)*0.274)-((inc-18520/2)*0.20)) else actc <-3558/2) else actc <- 0
-  if (inc<18305) (if (inc>12065) actfm <- min(1248, ((inc-2400)*0.15)-((inc-12065)*0.20)) else actfm <-1248) else actfm <- 0
-  if (inc<27629/2) (if (inc>18540/2) actce <- min(1818/2, ((inc-3600/2)*0.14)-((inc-18540/2)*0.20)) else actce <-1818/2) else actce <- 0
-  #total AC
-  AllocationTravailleurs <- actps*ps[i]+actc*c[i]+actfm*fm[i]+actce*ce[i]
+  # Bonifie le revenu de travail d'un % à partir d'un seuil, puis diminue de 10% à parti d'un second seuil 
+  if (ps[i] == 1){
+    if (inc > 2400 & inc < 19456){  # celibataire
+      PrimeTravail[i] <- 0.105*(inc-2400) - max(0, 0.1*(inc-10720))
+    } else {
+      PrimeTravail[i] <- 0
+    }
+  } else if (fm[i] == 1){
+    if (inc > 2400 & inc < 36680){ # monoparental
+      PrimeTravail[i] <- 0.30*(inc-2400) - max(0, 0.1*(inc-10720))
+    } else {
+      PrimeTravail[i] <- 0
+    }
+  } else if (c[i] == 1){
+    if (inc > 3600 & inc < 30217){ # couple
+      PrimeTravail[i] <- (0.105*(inc-3600) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
+    } else {
+      PrimeTravail[i] <- 0
+    }
+  } else if (ce[i] == 1){
+    if (inc > 3600 & inc < 49044){ # couple avec enfant
+      PrimeTravail[i] <- (0.25*(inc-3600) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
+    } else {
+      PrimeTravail[i] <- 0
+    }
+  } # les valeurs pour 2019 ont été utilisées
+
+  #Allocation canadienne pour les travailleurs
+  if (ps[i] == 1){
+    if (inc > 2400 & inc < 23458){ # celibataire
+      AllocationTravailleur[i] <- 0.274*(inc-2400) - max(0, 0.2*(inc-12060))
+    } else {
+      AllocationTravailleur[i] <- 0
+    }
+  } else if (fm[i] == 1){
+    if (inc > 2400 & inc < 18305){ # monoparental
+      AllocationTravailleur[i] <- 0.15*(inc-2400) - max(0, 0.2*(inc-12065))
+    } else {
+      AllocationTravailleur[i] <- 0
+    }
+  } else if (c[i] == 1){
+    if (inc > 3600 & inc < 36308){ # couple
+      AllocationTravailleur[i] <- (0.274*(inc-3600) - max(0, 0.2*(inc-18520))) / 2
+    } else {
+      AllocationTravailleur[i] <- 0
+    }
+  } else if (ce[i] == 1){
+    if (inc > 3600 & inc < 27629){ # couple avec enfant
+      AllocationTravailleur[i] <- (0.14*(inc-3600) - max(0, 0.2*(inc-18540))) / 2
+    } else {
+      AllocationTravailleur[i] <- 0
+    }
+  }
   
   #Allocation canadienne pour enfants
-  # aucune allocation si pas d'enfant
-  aceps<-0
-  acec<-0
-  #Aucune distinction entre famille monoparentale et couple
-
-  #Enfant de moins de 6 ans
-    if (inc<199183)     (if (inc<68708)       (if (inc >31711) ace6 <- min(6765, (6765-(inc-31711)*0.07)) else ace6 <-6765)    else ace6 <- min(4175.21, (4175.21-(inc-68708)*0.032)))   else ace6 <-0
-
-  
-  #Enfant de 6 à 17 ans
-      if (inc<166152)     (if (inc<68708)     (if (inc >31711) ace17 <- min(5708, (5708-(inc-31711)*0.07)) else ace17 <-6765)    else ace17 <- min(3118.21, (3118.21-(inc-68708)*0.032)))   else ace17 <-0
-  
-  # Comme on suppose que chaque ménage a seulement 1 enfant, s'il y en a un. 
-  # son age est inferieur a 6 si prescolaire a 1 et plus grand que 6 sinon
-  ace<- ace6*prescolaire[i]+ace17*(1-prescolaire[i])
-  
-  #Total ACE
-  #Normalement, un seul des parents reçoit l'allocation, généralement la femme, mais dans ce cas on divise entre les 2 parents
-  ACE <- (ace*ce[i])/2 + ace*fm[i]
-
+  if (ce[i] == 1 | fm[i] ==1){   # Aucune distinction entre famille monoparentale et couple
+    if (prescolaire[i] == 1) {
+      ACE[i] <- 6765 # montant plus élevé si enfant à moins de 6
+    } else {
+      ACE[i] <- 5708 # on suppose qu'il n'y a qu'un seul enfant
+    }
+    if (inc > 31711) { # premier seul de réduction (marginal)
+      ACE[i] <- ACE[i] - 0.07*min(36997, inc - 31711) # 7% pour revenu entre 31711 et 68708
+    }
+    if (inc > 68708) { # deuxième seuil
+      ACE[i] <- ACE[i] - 0.032*inc - 68708 # 3,2% pour revenu entre 31711 et 68708
+    }
+    ACE[i] <- max(ACE[i], 0) # on s'assure que la valeur n'est pas négative
+    if (ce[i] == 1) {
+      ACE[i] <- ACE[i]/2 # on divise le montant pas deux pour un couple
+    }
+  } else {
+      ACE[i] <- 0 #aucune allocation si pas d'enfant
+  }
   
   
   #Allocation famille
-  if (inc<125592/2) (if (inc>49842/2) afce <- max(1000/2, min(2515/2,(2515/2)-(inc-49842/2)*0.04)) else afce <- 2515/2) else afce <- 0
-  if (inc<87381) (if (inc>36256) affm <- max(1352, min(3397, 3397-(inc-36256)*0.04)) else affm <- 3397) else affm <- 0
-  #Total AF
-  AllocationFamille <- afce*ce[i] + affm*fm[i]
+  if (fm[i] == 1) {
+    AllocationFamille[i] <- 2515 + 882 # prime de base plus prime pour monoparental
+    if (inc > 36256) {
+      AllocationFamille[i] <- AllocationFamille[i] - 0.04*(inc-36256) # déduction pour haut revenu
+    }
+    AllocationFamille[i] <- max(AllocationFamille[i], 1352) # prime minimum
+  } else if (ce[i] == 1) {
+    AllocationFamille[i] <- 2515 # montant de base pour un enfant
+    if (inc > 49842) {
+      AllocationFamille[i] <- AllocationFamille[i] - 0.04*(inc-49842) # déduction pour haut revenu
+    }
+    AllocationFamille[i] <- max(AllocationFamille[i], 1000) / 2 # prime minimum, divisée par 2
+  } else {
+    AllocationFamille[i] <- 0
+  }
   
   #Crédit solidarité
-  if(inc<35400) csps <- 718 else csps <- min(718,max(718-((inc-35400)*0.06)/12),ctps)
-  if(inc<35400) csc <- 841 else csc <- min(841, max(841-((inc-35400)*0.06)/12),ctc)
-  if(inc<35400) csfm <- 996 else csfm <- min(996, max(996-((inc-35400)*0.06)/12),ctfm)
-  if(inc<35400) csce <-1119 else csce <- min(1119, max(1119-((inc-35400)*0.06)/12),ctce)
-  #total CS
-  CreditSolidarite<-csps*ps[i]+csc*c[i]+csfm*fm[i]+csce*ce[i]
+  if (ps[i] == 1) {
+    CreditSolidarite[i] <- 297+141+(577) # montant de base
+    if (inc > 35400) { # déduction pour revenu élevé
+      # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
+      CreditSolidarite[i] <- max(0, 2917 + 141 - 0.03*(inc-35400),  CreditSolidarite[i] - 0.06*(inc-35400))
+    } 
+  } else if (fm[i] == 1) { 
+    CreditSolidarite[i] <- 297+141+(577+123) # montant de base
+    if (inc > 35400) { # déduction pour revenu élevé
+      # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
+      CreditSolidarite[i] <- max(0, 297 + 141 - 0.03*(inc-35400),  CreditSolidarite[i] - 0.06*(inc-35400))
+    } 
+  } else if (c[i] == 1) {
+    CreditSolidarite[i] <- 297+297+(699) # montant de base
+    if (inc > 35400) { # déduction pour revenu élevé
+      # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
+      CreditSolidarite[i] <- max(0, 297 + 297 - 0.03*(inc-35400),  CreditSolidarite[i] - 0.06*(inc-35400)) / 2
+      # divisé par 2 pour un couple
+    }
+  } if (ce[i] == 1) {
+    CreditSolidarite[i] <- 297+297+(699+123) # montant de base
+    if (inc > 35400) { # déduction pour revenu élevé
+      # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
+      CreditSolidarite[i] <- max(0, 297 + 297 - 0.03*(inc-35400),  CreditSolidarite[i] - 0.06*(inc-35400)) / 2
+      # disivé par 2 pour un couple
+    }
+  }
 
-  transferts <- TPS_TVH +PrimeTravail+ AllocationTravailleurs+ ACE+ AllocationFamille+ CreditSolidarite
+  transferts <- TPS_TVH + PrimeTravail + AllocationTravailleurs + ACE + AllocationFamille + CreditSolidarite
   return(transferts)
 }
 ```
@@ -335,6 +429,7 @@ itax <- function(inc,i){
     prv <- pp1*(p2-p1) + pp2*(p3-p2) + pp3*(p4-p3) + pp4*(inc-p4)
     fed <- pt1*(f2-f1) + pt2*(f3-f2) + pt3*(f4-f3) + pt4*(f5-f4) + pt5*(inc-f5)
   }
+  
   aemploi <- min(54200,inc)*0.012
   rrq <- 0 #max(min(58700,inc)-3500,0)*0.057
   rqap <- min(78500,inc)*0.00494
@@ -346,22 +441,23 @@ itax <- function(inc,i){
 }
 ```
 
-Cette fonction de taxe prend en compte les paliers d'imposition fédéraux (*fed*) et québécois (*prv*), ainsi que les contributions à l'assurance emploi (*aemploi*), au RQAP (*rqap*) et, finalement, le programme d'aide sociale (*asociale*). Notez que la contribution au RRQ (*rrq*) est commentée puique cela dépend de l'hypothèse faite sur la substituabilité intertemporelle des individus. 
+Cette fonction de taxe prend en compte les paliers d'imposition fédéraux (*fed*) et québécois (*prv*), ainsi que les contributions à l'assurance emploi (*aemploi*), au RQAP (*rqap*) et, finalement, au programme d'aide sociale (*asociale*). Notez que la contribution au RRQ (*rrq*) est commentée puique cela dépend de l'hypothèse faite sur la substituabilité intertemporelle des individus. 
  ***à compléter***
 
 ## Taux marginaux effectifs d'imposition
 
-Notez qu'on peut directement voir l'impact de la fonction de taxe, sans hypothèses sur le comportement des individus en regardant les taux marginaux effectifs (TME) d'imposition. Le code suivant crée un graphique pour des incréments salariaux annuels de *incr* jusqu'à un revenu annuel de *imax* \$
+Notez qu'on peut directement voir l'impact de la fonction de taxe, sans hypothèses sur le comportement des individus, en regardant les taux marginaux effectifs (TME) d'imposition. Le code suivant crée un graphique pour des incréments salariaux annuels de *incr* jusqu'à un revenu annuel de *imax* \$
 
 ```{r}
 tme <- function(incr,imax,i){
-  # calcule les taux marginaux effectifs d'imposition, par incréments de "incr"$, jusqu'à imax$
+  # calcule les taux marginaux effectifs d'imposition par incréments de "incr"$, jusqu'à imax$
   incm <- seq(0,imax,by=incr) # vecteur des niveaux de revenus
   tax <- sapply(incm,function(x) itax(x,i)[1]) # applique la taxe sur chaque niveau de revenu
   tax2 <- c(tax[2:(length(tax))],0) # décale le taux de taxe
   deltatax <- tax2-tax # taxe marginale
   tm <- deltatax/incr # taux marginal effectif
-  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI',ylim=c(-0.2,1.5))
+  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI',#ylim=c(-0.2,1.5)
+       )
   return(list(incm[1:length(incm)-1],tm[1:length(incm)-1]))
 }
 
@@ -387,9 +483,9 @@ Voici une table détaillant les variables extraites:
 |Nom de la variable *LFS*|Description|Nom abrégé|
 |-|-|-|
 |AGE_12|Âge regroupé en 12 tranches de 5 ans (1=15-19 ans; 2=20-24; 3=25-29; 4=30-34; 5=35-39; 6=40-44, 7=45-49; 8=50-54; 9=55-59; 10=60-64; 11=65-69; 12=>70)|age|
-|SEX|Égale à 1 si l'individu est une femme|sexe|
+|SEX|Égal à 1 si l'individu est une femme|sexe|
 |EDUC|Niveau le plus élevé d'études atteint (1=0-8 ans; 2=Éduaction secondaire quelconque; 3=Secondaire complété; 4=certificat ou diplome postsecondaire; 5=Baccalauréat; 6=Études supérieures)|educ|
-|AGYOWNK|Age de l'enfant le plus jeune (1=<6ans; 2=6-12; 3=13-17; 4=18-24)|prescolaire|
+|AGYOWNK|Âge de l'enfant le plus jeune (1=<6ans; 2=6-12; 3=13-17; 4=18-24)|prescolaire|
 |EFAMTYPE|Type de ménage (1,15,17,18=Célibtaire; 2,4,5,7,8,10,11,13=Couple; 3,6,9,12= Couple avec enfant(s), 14,16=Ménage monoparental)|ps, c, fm et ce|
 |SCHOOLN|Statut d'étudiant (1=non-étudiant; 2=Temps plein; 3=Temps partiel)|etudes|
 |ATOTHRS|Nombre d'heures hebdomadaires travaillées|heures|
@@ -403,36 +499,36 @@ Voici une table détaillant les variables extraites:
 Les données contiennent un total de 17865 observations. Nous retirons les étudiants car leur offre de travail ne serait pas compatible avec le modèle théorique postulé. Pour ce faire, nous leur assignons une valeur manquante dans la colonne *SCHOOLN* afin que ces individus soient supprimés par la commande *complete.cases*. Cette dernière enlève les valeurs manquantes. En enlevant ces observations qui ont des valeurs manquantes, nous prenons soin de conserver leurs poids afin de repondérer les autres individus. Pour les tests, nous avons tiré un échantillon de 1000 individus. L'analyse finale a été effectuée sur l'ensemble des observations. Dans les deux cas, nous avons également noté *n* le nombre d'individus dans l'échantillon courant. 
 
 ```{r}
-lfs <- read_csv("./LFS-71M0001-E-2020-February_F1.csv", col_types = cols()) # importe les données du LFS, Fevrier 2020
-lfsqc <- lfs[lfs$PROV==24,] # garde uniquement le Québec
-rm(lfs) # supprime la base initiale de la mémoire
-lfsqc <- lfsqc[,c("AGE_12","SEX","EDUC","ATOTHRS","HRLYEARN","EFAMTYPE","SCHOOLN","AGYOWNK","FINALWT")]  # garde seulement certaines variables
+lfs <- read_csv("./LFS-71M0001-E-2020-February_F1.csv", col_types = cols()) # importe les données du LFS, Février 2020
+lfsqc <- lfs[lfs$PROV==24,] # Garde uniquement le Québec
+rm(lfs) # Supprime la base initiale de la mémoire
+lfsqc <- lfsqc[,c("AGE_12","SEX","EDUC","ATOTHRS","HRLYEARN","EFAMTYPE","SCHOOLN","AGYOWNK","FINALWT")]  # Garde seulement certaines variables
 
-# enleve les etudiants
+# Enlever les étudiants
 lfsqc$SCHOOLN[lfsqc$SCHOOLN != 1] <- NA
-n0 <- nrow(lfsqc) # garde le nombre d'observations initiales
-missingweight <- c(lfsqc[!complete.cases(lfsqc),"FINALWT"])[[1]] #garde les poids des individus qui seront enlevés
-lfsqc <- lfsqc[complete.cases(lfsqc), ] # enlève les observations avec des variables manquantes
-lfsqc <- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # sous-échantillonage pour les tests (à commenter pour l'analyse finale)
-n <- nrow(lfsqc) # nombre d'individus dans la base
+n0 <- nrow(lfsqc) # Garde le nombre d'observations initiales
+missingweight <- c(lfsqc[!complete.cases(lfsqc),"FINALWT"])[[1]] #Garde les poids des individus qui seront enlevés
+lfsqc <- lfsqc[complete.cases(lfsqc), ] # Enlève les observations avec des variables manquantes
+lfsqc <- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # Sous-échantillonage pour les tests (à commenter pour l'analyse finale)
+n <- nrow(lfsqc) # Nombre d'individus dans la base
 
 # Ajustement des poids des individus
 corfact <- sum(lfsqc$FINALWT)/(sum(lfsqc$FINALWT)+sum(missingweight))
-wght <- as.numeric(lfsqc$FINALWT)/corfact # calcule les poids approximatifs (les val. manquantes sont parfaitement aléatoires)
+wght <- as.numeric(lfsqc$FINALWT)/corfact # Calcule les poids approximatifs (les val. manquantes sont parfaitement aléatoires)
 ```
 
-À partir d'une base de données complète (sans valeurs manquantes), nous créons des vecteurs pour les variables du modèle théorique et celles essentielles à la modélisation des règles fiscales québécoises et canadiennes. Les données sont conservées en vecteurs séparés pour faciliter leur utilisation dans les différentes fonctions programmées. L'ensemble des variables explicatrices est rassemblé dans la matrice *Xmat* afin de décrire rapidement l'ensemble des variables. 
+À partir d'une base de données complète (sans valeurs manquantes), nous créons des vecteurs pour les variables du modèle théorique et celles essentielles à la modélisation des règles fiscales québécoises et canadiennes. Les données sont conservées en vecteurs séparés pour faciliter leur utilisation dans les différentes fonctions programmées. L'ensemble des variables explicatives est rassemblé dans la matrice *Xmat* afin de décrire rapidement l'ensemble des variables. 
 
 ```{r}
 
-# Creer des vecteurs des variables
+# Créer des vecteurs de variables
 wage <- as.numeric(lfsqc$HRLYEARN) # salaire horaire
-age <- as.numeric(lfsqc$AGE_12) # age regroupé en tranches de 5 ans de 15-19 ans(1) a >70 (12)
+age <- as.numeric(lfsqc$AGE_12) # âge regroupé en tranches de 5 ans de 15-19 ans(1) a >70 (12)
 sexe <- ifelse(lfsqc$SEX == 1, 1, 0) # Code les femmes = 1, hommes =0
 prescolaire <- ifelse(lfsqc$AGYOWNK == 1, 1, 0) # enfant le plus jeune <6 ans, 1= oui, 0=non
-educ <- as.numeric(lfsqc$EDUC) #niveau d'education
-#Type de menage
-#personnes seules
+educ <- as.numeric(lfsqc$EDUC) #niveau d'éducation
+#Type de ménage
+#Personnes seules
 ps<-ifelse(lfsqc$EFAMTYPE %in% c(1,15,17,18), 1,0)
 
 #Couples sans enfants
@@ -471,10 +567,24 @@ hist(lfsqc$ATOTHRS,
 ```
 
 
+## Effet des taxes
+
+```{r}
+weeks <- 50
+rhours <- as.numeric(lfsqc$ATOTHRS)*weeks
+salbrut <- rhours * wage
+
+salnet<- rep(n,0)
+for (j in 1:n) {
+  salnet[j] <- itax(salbrut[j], j)[1]
+}
+hist(salnet)
+```
+
 
 # 4. Calibration
 
-## Variables générales
+## Variables globales
 
 Les variables globales sont définies comme suit:
 
@@ -484,58 +594,102 @@ Les variables globales sont définies comme suit:
 
 * *lincr* est le nombre minimal d'heures annuelles de travail que l'individu peut ajuster. Nous l'avons fixé à 250 heures par année, soit des incréments de 5 heures par semaine.
 
+* *nincr* est le nombre d'incréments (le nombre de sauts) possibles. 
+
 * *nsim* est le nombre de simulations que nous allons faire pour déterminer les valeurs optimales de $\beta$ et de $\theta$. Nous l'avons fixé à 100. 
 
 ```{r}
 Lmax <- 4250
 weeks <- 50
 lincr <- 250
-nsim <- 100
+nincr <- Lmax/lincr +1
+nsim <- 2
 ```
 
 
 ## Processus aléatoires
 
-Pour calibrer le modèle d'offre de travail, nous allons utiliser les données sur les heures travaillées disponibles dans la *Labour Force Survey*. Comme il y a toujours une variabilité dans les données qui ne peut être captée par le modèle théorique, nous ajoutons des processus aléatoires au modèle spécifié plus haut. Pour ce faire, nous supposons des caractéristiques inobservables des individus qui rendent aléatoire la fonction de préférence pour le loisir:
+Pour calibrer le modèle d'offre de travail, nous allons utiliser les données sur les heures travaillées disponibles dans le *Labour Force Survey*. Comme il y a toujours une variabilité dans les données qui ne peut être captée par le modèle théorique, nous ajoutons des processus aléatoires au modèle spécifié plus haut. Pour ce faire, nous supposons des caractéristiques inobservables des individus qui rendent aléatoire la fonction de préférence pour le loisir:
 
-$$\hat{\alpha_{1i}} = \alpha_{1i}+v$$
-où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance 1.
-La matrice *ErreurAlpha* pour le coefficient $\hat{\alpha_{1i}}$ contient un terme d'Erreur pour chaque individu à chaque simulation et est construite par le code suivant:
+$$\hat{\alpha_{1i}} = \alpha_{1i}+v_i$$
+où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance 0.01.
+
+La matrice *ErreurAlpha* pour le coefficient $\hat{\alpha_{1i}}$ contient un terme d'erreur pour chaque individu à chaque simulation et est construite par le code suivant:
 
 ```{r}
-erreurA <- matrix(rnorm(n*nsim), nsim, n)
+erreurA <- matrix(rnorm(n*nsim,0,0.01), nsim, n)
 ```
 
 
 Nous supposons aussi que la fonction d'utilité elle-même a un terme d'erreur $\epsilon_i$:
 
-$$\hat{U}_i(C,L)=U_i(C,L)+\epsilon_i,$$
+$$\hat{U}_i(C,L)=U_i(C,L)+e^{\epsilon_i},$$
 
-où $\epsilon_i$ est également un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance $\sigma^2_L$ équivalente à la variance des heures de travail.
+où $\epsilon_i$ est également un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et d'écart-type $ln(\sigma_L)$ équivalente à l'écart-type des heures de travail. La transformation $e^{\epsilon_i}$ assure une valeur positive du terme d'erreur et par le fait même, que la fonction d'utilité est positive.
 
 ```{r}
-ErreurU <- list( rep (matrix(rnorm(Lmax/lincr*nsim), Lmax/lincr, nsim), n))
+erreurU <- replicate(n, matrix(rnorm((nincr)*nsim,0,1), nrow=nincr, ncol=nsim))
 # le terme erreurU sera multiplié par l'écart-type des heures travaillées tel que sa variance sera égale à l'écart type au carré.
+
 ```
+
+Dans ce cas, nous re-codons les fonctions *alpha1*, *Utilite* et *umarginal* et *Loptimal* pour quelles incluent les termes d'erreur. 
+
+```{r}
+alphahat<- function(i,theta, sim){
+  alphahat <- as.numeric(alpha1(i, theta)) + erreurA[sim,i]
+  return(alphahat)
+}
+
+uhat <- function(i, L, theta, sim){
+  uhat <- alphahat(i,theta, sim)*log(Lmax-L)+ theta[7]*log((Lmax-L)^2)
+  +theta[8]*log(Y(i,L)) + theta[9]*log((Y(i,L))^2)+ theta[10]*as.numeric(L==0)
+  +theta[11]*as.numeric((L>=1750 & L<=2000))
+  return( uhat)
+}
+
+umarghat <- function(i,theta, sim){
+# calcule l'utilite marginale de l'individu i par increments de incr heures de travail
+  lsup <- seq(0,Lmax,by=lincr) # vecteur des heures travaillees
+  util <- sapply(lsup,function(x) uhat(i,x,theta,sim))+ exp(as.numeric(erreurU[,sim,i])*theta[12])
+  return(list(lsup,util))
+}
+
+#nombre d'heures optimales
+Lhat <- function(i, theta, sim){
+  #vecteur des utilites pour chaque heure de travail  
+  u <- as.numeric(umarghat(i, theta, sim)[[2]])
+  lsup <- as.numeric(umarghat(i,theta,sim)[[1]]) 
+  # heures minimales travailles qui maximisent l'utilite
+  position <- which(u==max(u)) #utilite maximale
+  h<-min(lsup[position])
+  return(h) 
+}
+
+```
+
+
 ## Méthode des moments généralisés simulés
 
-Nous allons calibrer le modèle théorique avec les données du *LFS*. Essentiellement, il s'agit de trouver les valeurs de $\beta$ et de $\theta$ afin que les heures travaillées simulées par le modèle d'offre de travail basé sur la théorie économique soient le plus près possible des données observées dans le *LFS*. Pour ce faire, nous utilisons la méthode des moments généralisés, qui consiste à fixer certains paramètres de la distribution, comme la moyenne et l'écart-type et à sélectionner les valeurs de $\beta$ et de $\theta$ qui reproduisent ces *moments.* 
+Nous allons calibrer le modèle théorique avec les données du *LFS*. Essentiellement, il s'agit de trouver les valeurs de $\theta$ afin que les heures travaillées simulées par le modèle d'offre de travail basé sur la théorie économique soient le plus près possible des données observées dans le *LFS*. Pour ce faire, nous utilisons la méthode des moments généralisés, qui consiste à fixer certains paramètres de la distribution, comme la moyenne et l'écart-type, et à sélectionner les valeurs de $\theta$ qui reproduisent ces *moments.* 
 
-Comme la population du sondage est diversifiée et que les caractéristiques individuelles influencent formement les préférences pour le loisir, il faut inclure plusieurs variables dans le modèle. Dans ce cas, il y a plusieurs combinaisons de $\beta$ et de $\theta$ qui permettent de répliquer la moyenne et l'écart-type des heures travaillées. On dit que le modèle est *sous-identifié*. Pour que le modèle soit identifié, il nous faut au minimum autant de moments que de paramètres à estimer. En multipliant le vecteur des heures travaillées par la matrice des caractéristiques individuelles, on obtient facilement des moments intuitifs.
+Comme la population du sondage est diversifiée et que les caractéristiques individuelles influencent fortement les préférences pour le loisir, il faut inclure plusieurs variables dans le modèle. Dans ce cas, il y a plusieurs combinaisons de $\theta$ qui permettent de répliquer la moyenne et l'écart-type des heures travaillées. On dit que le modèle est *sous-identifié*. Pour que le modèle soit identifié, il nous faut au minimum autant de moments que de paramètres à estimer. En multipliant le vecteur des heures travaillées par la matrice des caractéristiques individuelles, on obtient facilement des moments intuitifs.
 
-Le code suivant génère les moments réels pbservés dans l'échantillon en prenant soin de pondérer les moyennes et l'écart-type, puisque les individus ne sont pas également représentatifs de la population.
+Le code suivant génère les moments réels observés dans l'échantillon en prenant soin de pondérer les moyennes et l'écart-type, puisque les individus ne sont pas également représentatifs de la population.
 
 ```{r}
 rhours <- as.numeric(lfsqc$ATOTHRS)*weeks # nombre d'heures annuelles sur une base de 'weeks' semaines de travail
 wrhours <- rhours*wght # heures annuelles x poids individuels
-
+Xmat<-Xmat[,1:5]
 k<-ncol(Xmat)
+
+#ecart-type des heures ponderees
 rwse <-  sqrt((sum(wght*(rhours^2))/sum(wght))-(sum(wrhours)/sum(wght))^2)
 rmoments <- c(colSums(matrix(rep(wrhours,k),n,k)*Xmat)/sum(wght),rwse,sum(as.numeric(rhours>=1750 & rhours<=2000)*wght)/sum(wght),sum(as.numeric(rhours==0)*wght)/sum(wght)) # calcul des moments
 print(rmoments)
 ```
 
-On a donc 12 moments ici:
+On a donc 8 moments ici:
 
 1. moyenne(heures travaillées)
 
@@ -547,72 +701,32 @@ On a donc 12 moments ici:
 
 5. moyenne(heures travaillées $\times$ niveau d'éducation)
 
-6. moyenne(heures travaillées -- personnes seules)
+6. écart-type(heures travaillées)
 
-7. moyenne(heures travaillées -- couples sans enfant)
+7. moyenne(travaille entre 35 et 40h / semaine)
 
-8. moyenne(heures travaillées -- familles monoparentales)
-
-9. moyenne(heures travaillées -- couples avec enfant)
-
-10. écart-type(heures travaillées)
-
-11. moyenne(travaille entre 35 et 40h / semaine)
-
-12. moyenne(ne travaille pas)
+8. moyenne(ne travaille pas)
 
 
-On veut donc choisir une valeur de $\theta$ telle que les moments simulés par le modèle soient proche des moments dans les données. Malgré que nous ayons autant de moments que de paramètres, nous ne pouvons en général pas être certains qu'il existe une unique solution de $\theta$ . C'est pour cela que nous parlons habituellement de *calibration* et non d'*estimation* du modèle. En pratique, la calibration s'opère comme une estimation classique, i.e. nous allons minimiser la distance entre les moments simulés et les moments observés:
+On veut donc choisir une valeur de $\theta$ telle que les moments simulés par le modèle soient proches des moments dans les données. Malgré que nous ayons autant de moments que de paramètres, nous ne pouvons en général pas être certains qu'il existe une unique solution de $\theta$ . C'est pour cela que nous parlons habituellement de *calibration* et non d'*estimation* du modèle. En pratique, la calibration s'opère comme une estimation classique, i.e. nous allons minimiser la distance entre les moments simulés et les moments observés:
 
 $$
 GMM(\theta)=(\mathbb{E}Moments(\theta)-Moments)'(\mathbb{E}Moments(\theta)-Moments)
 $$
 où $\mathbb{E}Moments(\theta)$ est la moyenne des moments simulés pour différents tirages des $\varepsilon_i$ et $Moments$ sont les moments des données. La procédure est donc de minimiser $GMM(\theta)$. 
 
-Premièrement, nous re-codons les fonction *alpha1*, *Utilite* et *umarginal* pour quelles incluent les termes d'erreur. Ensuite, la fonction *wrapi* retourne le nombres d'heures de travail optimales considérant les termes d'erreurs ajoutés.
 
-```{r}
-alphahat<- function(i,beta, sim){
-  alphahat <- alpha1(beta, i)+ erreurA[sim,i]
-  return(alphahat)
-}
+Pour coder l'espérance des 12 moments simulés selon le vecteur de coefficients *theta*, nous utilisons la fonction *simhours*
 
-uhat <- function(i, L, beta, theta, sim){
-  uhat <- alphahat(i,beta, sim)*log(Lmax-L)+ theta[1]*log((Lmax-L)^2)
-  +theta[2]*log(Y(i,L)) + theta[3]*log((Y(i,L))^2)+ theta[4]*as.numeric(L==0)
-  +theta[5]*as.numeric((L>=1750 & L<=2000))
-  return(uhat)
-}
-
-umarghat <- function(i,incr,beta,theta, sim){
-# calcule l'utilite marginale de l'individu i par increments de incr heures de travail
-  lsup <- seq(0,Lmax,by=incr) # vecteur des heures travaillees
-  util <- sapply(lsup,function(x) uhat(i,x,beta,theta,sim)) 
-  util2 <- c(util[2:(length(util))],0) # decale le vecteur des utilites
-  deltautil <- util2-util # utilite marginale
-  return(list(lsup[1:length(lsup)-1],deltautil[1:length(lsup)-1],util[1:length(lsup)-1]))
-}
-
-#nombre d'heures optimales
-wrapi <- function(i,sim,beta,theta){
-    u <- as.numeric(umarghat(i,lincr,beta,theta,sim)[[3]])+ as.numeric(erreur[[sim]][i,])*exp(theta[k+1]) 
-      # notez ici le changement de variable "exp(theta[6])" afin de s'assurer que l'écart-type soit toujours un chiffre positif.
-    h <- (which(u==max(u))-1)*lincr # heures travaillées qui maximisent l'utilité
-    return(min(h))
-}
-```
-
-Ensuite, la fonction *simhours*
 
 ```{r}
 simhours <- function(theta){
-  moments <- rep(0,12) # vecteur de zéros qui va contenir la moyenne des moments simulés
+  moments <- rep(0,8) # vecteur de zéros qui va contenir la moyenne des moments simulés
   for (sim in 1:nsim){
-     hours <- as.numeric(sapply(1:n,function(i) wrapi(i,sim,alpha,theta)))
+     hours <- as.numeric(sapply(1:n,function(i) Lhat(i,theta,sim)))
      wh <- wght*hours
      swse <-  sqrt((sum(wght*(hours^2))/sum(wght))-(sum(wh)/sum(wght))^2)
-     #moments <- moments + c(colSums(matrix(rep(wh,k),n,k)*Xmat)/sum(wght),swse,sum(as.numeric(hours>=1750&hours<=2000)*wght)/sum(wght),sum(as.numeric(hours==0)*wght)/sum(wght)) # calcul des moments     
-    moments <- moments + c(colSums(matrix(rep(wh,k),n,k)*Xmat)/sum(wght),swse,sum(as.numeric(hours==2000)*wght)/sum(wght),sum(as.numeric(hours==0)*wght)/sum(wght)) # calcul des moments     
+     moments <- moments + c(colSums(matrix(rep(wh,k),n,k)*Xmat)/sum(wght),swse,sum(as.numeric(hours>=1750&hours<=2000)*wght)/sum(wght),sum(as.numeric(hours==0)*wght)/sum(wght)) # calcul des moments     
   }
   moments <- moments/nsim # fait la moyenne
   return(moments)
@@ -620,39 +734,26 @@ simhours <- function(theta){
 
 distrhours <- function(theta){
   moments <- simhours(theta) # moments simulés
-#  gmm <- sum((moments/max(rmoments,rep(1,length(theta)))-rep(1,length(theta)))^2) # distance entre les moments simulés et les moments dans les données
-   gmm <- sum((moments-rmoments)^2) # distance entre les moments simulés et les moments dans les données
+  gmm <- sum((moments-rmoments)^2) # distance entre les moments simulés et les moments dans les données
   return(gmm)
 }
 ```
 
-```{r eval=FALSE, echo=TRUE}
-summary(exp(as.numeric(Xmat%*%matrix(theta0[1:k],k,1))))
-```
 
-Rappelez vous qu'un choc aléatoire est ajouté à $\alpha_{1i}$ pour tenir compte de l'hétérogénéité inobservée. Une bonne pratique est de simuler les erreurs d'abord afin qu'elles soient les mêmes pour chaque évaluation des différentes valeurs de $\theta$ et ainsi éviter les problèmes numérique pour un nombre faible de simulations.
+On peut donc maintenant lancer la calibration. L'objectif de la calibration est de minimiser la somme du carré des écarts entre  les moments simulés *moments* et les moments observés *rmoments*. L'optimisation de la fonction *distrhours* qui calcule les GMM se fait par la fonction *optim* qui cherche les valeurs de *theta* qui minimisent la fonction. Nous donnons un vecteur de départ arbitraire *thetahat* et l'algorithme d'optimisation retourne le vecteur de *thetahat* qui minimise les GMM. 
 
 ```{r}
-####### Dernières variables globales #######
-nsim <- 1
-erreur <- vector("list", nsim)
-erreur2 <- vector("list",nsim)
-for (s in 1:nsim){
-  erreur[[s]] <- matrix(rnorm(n*(Lmax/lincr)),n,(Lmax/lincr))
-  erreur2[[s]] <- rnorm(n)
-}
-```
+# thetatry <- c(0.01239040, -0.01531411,  0.01137535,  0.01061802,  0.01987626,  0.01161269, 0.01602443)
+# thetatry[4] <- thetatry[4]+0.01
+# thetatry[k+2] <- thetatry[k+2]+1
+# thetatry[k+3] <- thetatry[k+3]+0.7
+thetahat <- rep(0.01, 12)
 
-On peut donc maintenant lancer la calibration.
+out <- optim(thetahat, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
 
-```{r eval=FALSE, echo=TRUE}
-thetatry <- c(0.01239040, -0.01531411,  0.01137535,  0.01061802,  0.01987626,  0.01161269, 0.01602443)
-thetatry[4] <- thetatry[4]+0.01
-thetatry[k+2] <- thetatry[k+2]+1
-thetatry[k+3] <- thetatry[k+3]+0.7
-#out <- optim(thetatry, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
-#thetatry <- out$par
-#print(out)
+
+thetatry <- out$par
+print(out)
 ```
 
 On voit la valeur calibrée de theta dans $out\$ par$ et la valeur de la fonction objective dans $out\$ value$. On peut maintenant voir les moments simulés (moyenne sur *nsim* simulations) et les moments réels avec le code suivant:
@@ -663,7 +764,7 @@ print(simhours(thetatry))
 print(rmoments)
 ```
 
-On voit donc que la majorité des moments sont bien simulés, sauf que le modèle produit trop de variation dans les heures travaillées: l'écart-type des heures travaillées est très grand. Regardons la distribution réelle des heures travaillées.
+On voit donc que la majorité des moments sont bien simulés, sauf que le modèle produit trop de variation dans les heures travaillées : l'écart-type des heures travaillées est très grand. Regardons la distribution réelle des heures travaillées.
 
 ```{r eval=FALSE, echo=TRUE}
 hist(rhours)
@@ -688,7 +789,7 @@ hist(simwork(thetatry,1))
 
 ## Comparaison des résultats observés et simulés
 
-Pour l'instant, la valeur estimée de $\theta$ nous donne une distribution des heures travaillées, ce qui nous permet de calculer les taxes, le bien-être et beaucoup d'autre variables.
+Pour l'instant, la valeur estimée de $\theta$ nous donne une distribution des heures travaillées, ce qui nous permet de calculer les taxes, le bien-être et beaucoup d'autres variables.
 
 ```{r eval=FALSE, echo=TRUE}
 makestats <- function(theta){
@@ -711,7 +812,7 @@ colnames(matstats) <- c("heures travaillées","utilité","revenu brut","taxes et
 summary(matstats)
 ```
 
-Cela nous donne donc des données intéressantes à comparer. Vous pouvez aussi naturellement vous intéresser à d'autres variables comme par exemple l'indice de Gini. Faites par contre attention d'utiliser correctement les poids échantillonaux lorsque vous travaillez avec des variables globales!
+Cela nous donne donc des données intéressantes à comparer. Vous pouvez aussi naturellement vous intéresser à d'autres variables, comme l'indice de Gini. Faites par contre attention d'utiliser correctement les poids échantillonaux lorsque vous travaillez avec des variables globales!
 
 
 # 5. Réforme #1 : Revenu minimum garanti
@@ -746,7 +847,7 @@ colnames(matstats_noas) <- c("heures travaillées","utilité","revenu brut","tax
 summary(matstats_noas)
 ```
 
-En particulier, ici on voit que tous se sont mis à travailler. C'est une conséquence directe de l'hypothèse sur l'utilité: sans aide sociale, ne pas travailler implique une consommation nulle et une utilité de -Infini. Les individus sont donc prêts à tout pour arriver à consommer. Remettons l'histograme des heures travaillées (simulées) sur le modèle avec assurance emploi:
+En particulier, ici on voit que tous se sont mis à travailler. C'est une conséquence directe de l'hypothèse sur l'utilité: sans aide sociale, ne pas travailler implique une consommation nulle et une utilité de -Infini. Les individus sont donc prêts à tout pour arriver à consommer. Remettons l'histogramme des heures travaillées (simulées) sur le modèle avec assurance emploi:
 
 ```{r eval=FALSE, echo=TRUE}
 hist(matstats[,1])
