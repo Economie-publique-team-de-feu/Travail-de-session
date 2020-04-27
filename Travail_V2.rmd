@@ -668,7 +668,7 @@ Lhat <- function(i, theta, sim){
   u <- as.numeric(umarghat(i, theta, sim)[[2]])
   lsup <- as.numeric(umarghat(i,theta,sim)[[1]]) 
   # heures minimales travailles qui maximisent l'utilite
-  position <- which(u==max(u)) #utilite maximale
+  position <- which(u==max(u,na.rm=T)) #utilite maximale
   h<-min(lsup[position])
   return(h) 
 }
@@ -754,45 +754,45 @@ On peut donc maintenant lancer la calibration. L'objectif de la calibration est 
 ```{r}
 thetatry <- c(102, -59,  8,  0.5,  120,  5, 1, 4, 0.01, 5, 2, 10)
 #gmm de depart
-distrhours(thetatry)
+#distrhours(thetatry)
 
-out <- optim(thetatry, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
+#Calibration - ne pas rouler, ca prend 16 h....
+#out <- optim(thetatry, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
+# thetatry <- out$par
+# print(out)
 
+#Parametres estimes par la calibration
+thetamagique <- c (104.318386, -54.445962, 12.287784 ,  2.450735 ,118.574461  , 9.823539,
+                    7.478973 ,  1.360434 , -2.471970 ,  3.952846,   3.868968 ,  4.478026)
 
-thetatry <- out$par
-print(out)
 ```
 
 
 On voit la valeur calibrée de theta dans $out\$ par$ et la valeur de la fonction objective dans $out\$ value$. On peut maintenant voir les moments simulés (moyenne sur *nsim* simulations) et les moments réels avec le code suivant:
 
-```{r eval=FALSE, echo=TRUE}
-print(thetatry)
-print(simhours(thetatry))
+```{r }
+print(thetamagique)
+print(simhours(thetamagique))
 print(rmoments)
 ```
 
 On voit donc que la majorité des moments sont bien simulés, sauf que le modèle produit trop de variation dans les heures travaillées : l'écart-type des heures travaillées est très grand. Regardons la distribution réelle des heures travaillées.
 
-```{r eval=FALSE, echo=TRUE}
+```{r}
 hist(rhours)
 print(max(rhours))
 ```
 
 On voit bien la masse importante juste avant 2000 heures de travail (i.e. 40 heures par semaine pendant 50 semaines), ce qui est intuitivement clair. Le code suivant nous donne un exemple de distribution des heures travaillées données par le modèle.
 
-```{r eval=FALSE, echo=TRUE}
-simwork <- function(theta,sim){
-    hours <- rep(0,n) # vecteur de zéros qui va contenir les heures travaillées simulées
-    alpha <- exp(as.numeric(Xmat%*%matrix(theta[1:k],k,1))) # simulation des préférences alpha pour chaque individu
-    for (i in 1:n){
-      u <- umarginal(i,lincr,alpha,theta)[[3]]+as.numeric(erreur[[sim]][i,])*exp(theta[k+1]) # utilité pour chaque niveau d'heures travaillées
-      h <- (which(u==max(u))-1)*lincr # heures travaillées qui maximisent l'utilité
-      hours[i] <- h # conserve dans le vecteur
-    }
-    return(hours)
+```{r}
+
+
+whsim <- rep(0,n)
+for (i in 1:n){
+  whsim[i]<-Lhat(i, thetamagique, 1)
 }
-hist(simwork(thetatry,1))
+hist(whsim)
 ```
 
 ## Comparaison des résultats observés et simulés
