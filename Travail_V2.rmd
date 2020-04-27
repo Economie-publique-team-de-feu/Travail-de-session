@@ -842,22 +842,19 @@ if (ps[i]== 1) {
   else if (age_12>11)
     rmg <- 36970.44 #revenu minimum garanti pour les personnes de 65 ans et plus est egal a 100% du panier de consommation
   else rmg <-0 #concerne seulement la categorie 1 (15-19 ans), qu'on n'a pas dans l'échantillon
-} 
-  else if (fm[i] == 1) {
+} else if (fm[i] == 1) {
    if (age_12 >1 & age_12<10) 
      rmg <- (36970.44*0.55*1.45) # 55% panier de consommation pris pour Montreal (le plus eleve des choix), revenu indique en dollars constants de 2018. Plus une représentation des dépenses additionnel entrainer par le fait d'etre un menage monoparentale (ratio determiner par les données du tableau 11-10-0224-01 de statistique canada)
   else if (age_12>11)
     rmg <- 36970.44 #revenu minimum garanti pour les personnes de 65 ans et plus est egal a 100% du panier de consommation
   else rmg <-0 #concerne seulement la categorie 1 (15-19 ans), qu'on n'a pas dans l'échantillon
-}
-  else if (c[i] == 1){ 
+}else if (c[i] == 1){ 
    if (age_12 >1 & age_12<10) 
      rmg <- (36970.44*0.55*1.87) # 55% panier de consommation pris pour Montreal (le plus eleve des choix), revenu indique en dollars constants de 2018. Plus une représentation des dépenses additionnel entrainer par le fait d'etre un menage monoparentale (ratio determiner par les données du tableau 11-10-0224-01 de statistique canada)
  else if (age_12>11)
     rmg <- 36970.44 #revenu minimum garanti pour les personnes de 65 ans et plus est egal a 100% du panier de consommation
   else rmg <-0 #concerne seulement la categorie 1 (15-19 ans), qu'on n'a pas dans l'échantillon
-}
-  else if (ce[i]==1){
+}else if (ce[i]==1){
    if (age_12 >1 & age_12<10) 
      rmg <- (36970.44*0.55*2.48) #panier de consommation pris pour Montreal (le plus eleve des choix), revenu indique en dollars constants de 2018. Plus une représentation des dépenses additionnel entrainer par le fait d'etre un menage monoparentale (ratio determiner par les données du tableau 11-10-0224-01 de statistique canada)
   else if (age_12>11)
