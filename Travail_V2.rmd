@@ -618,33 +618,21 @@ nsim <- 10
 
 Pour calibrer le modèle d'offre de travail, nous allons utiliser les données sur les heures travaillées disponibles dans le *Labour Force Survey*. Comme il y a toujours une variabilité dans les données qui ne peut être captée par le modèle théorique, nous ajoutons des processus aléatoires au modèle spécifié plus haut. Pour ce faire, nous supposons des caractéristiques inobservables des individus qui rendent aléatoire la fonction de préférence pour le loisir:
 
-$$\hat{\alpha_{1i}} = \alpha_{1i}+v_i$$
-où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance 0.01.
+$$\hat{\alpha_{1i}} = \alpha_{1i}+\theta_{12}e^{v_i}$$
+où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance 1. Le paramètre $\theta_{12}$ modifie l'ampleur du terme d'erreur et la transformation $e^{v_i}$ empêche d'avoir une valeur négayive de $\hat{\alpha}_{1i}$
 
 La matrice *erreurA* pour le coefficient $\hat{\alpha_{1i}}$ contient un terme d'erreur pour chaque individu à chaque simulation et est construite par le code suivant:
 
 ```{r}
-erreurA <- matrix(rnorm(n*nsim,0,0.01), nsim, n)
+erreurA <- matrix(rnorm(n*nsim,0,1), nsim, n)
 ```
 
-
-Nous supposons aussi que la fonction d'utilité elle-même a un terme d'erreur $\epsilon_i$:
-
-$$\hat{U}_i(C,L)=U_i(C,L)+e^{\epsilon_i},$$
-
-où $\epsilon_i$ est également un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et d'écart-type $ln(\sigma_L)$ équivalente à l'écart-type des heures de travail. La transformation $e^{\epsilon_i}$ assure une valeur positive du terme d'erreur et par le fait même, que la fonction d'utilité est positive.
-
-```{r}
-erreurU <- replicate(n, matrix(rnorm((nincr)*nsim,0,1), nrow=nincr, ncol=nsim))
-# le terme erreurU sera multiplié par l'écart-type des heures travaillées tel que sa variance sera égale à l'écart type au carré.
-
-```
 
 Dans ce cas, nous re-codons les fonctions *alpha1*, *Utilite* et *umarginal* et *Loptimal* pour quelles incluent les termes d'erreur. 
 
 ```{r}
 alphahat<- function(i,theta, sim){
-  alphahat <- as.numeric(alpha1(i, theta)) + (erreurA[sim,i])
+  alphahat <- as.numeric(alpha1(i, theta)) + exp(erreurA[sim,i])*theta[12]
   return(alphahat)
 }
 
@@ -658,7 +646,7 @@ uhat <- function(i, L, theta, sim){
 umarghat <- function(i,theta, sim){
 # calcule l'utilite marginale de l'individu i par increments de incr heures de travail
   lsup <- seq(0,Lmax,by=lincr) # vecteur des heures travaillees
-  util <- sapply(lsup,function(x) uhat(i,x,theta,sim))+ exp(as.numeric(erreurU[,sim,i])*theta[12])
+  util <- sapply(lsup,function(x) uhat(i,x,theta,sim))
   return(list(lsup,util))
 }
 
