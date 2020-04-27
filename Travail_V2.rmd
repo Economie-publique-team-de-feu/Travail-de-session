@@ -237,7 +237,7 @@ ce : couple avec enfants
 
 transferts <- function(inc, i){
   
-  #Crédit TPS-TVH
+  #Credit TPS-TVH
   TPS_TVH <- 296 # montant de base
   if (c[i] == 1 | ce[i] == 1 | fm[i] == 1) { 
     TPS_TVH <- TPS_TVH + 296 # montant si personne a charge ou monoparental
@@ -246,15 +246,15 @@ transferts <- function(inc, i){
     }
   }
   if (ps[i] == 1) {
-    TPS_TVH <- TPS_TVH + min(155, max(0, 0.02*(inc-9590))) # prime au travail pour celibataire
+    TPS_TVH <- TPS_TVH + min(155, max(0, 0.02*(inc-9590))) # montant pour celibataire
   } else if (fm[i] == 1) {
-    TPS_TVH <- TPS_TVH + 155 # prime au travail si monoparental
+    TPS_TVH <- TPS_TVH + 155 # montant si monoparental
   }
   if (inc > 38507) {
-    TPS_TVH <- max(0, TPS_TVH - 0.05*(inc-38507)) # déduction pour haut revenu 
+    TPS_TVH <- max(0, TPS_TVH - 0.05*(inc-38507)) # deduction pour haut revenu 
   } 
   if (c[i] == 1 | ce[i] == 1 ) { 
-    TPS_TVH <- TPS_TVH / 2 # montant final divisé par 2 si en couple 
+    TPS_TVH <- TPS_TVH / 2 # montant final divise par 2 si en couple 
   }
   
   
@@ -284,7 +284,7 @@ transferts <- function(inc, i){
     } else {
       PrimeTravail <- 0
     }
-  } # les valeurs pour 2019 ont été utilisées
+  } # les valeurs pour 2019 ont ete utilisees
 
   #Allocation canadienne pour les travailleurs
   if (ps[i] == 1){
@@ -316,17 +316,17 @@ transferts <- function(inc, i){
   #Allocation canadienne pour enfants
   if (ce[i] == 1 | fm[i] ==1){   # Aucune distinction entre famille monoparentale et couple
     if (prescolaire[i] == 1) {
-      ACE <- 6765 # montant plus élevé si enfant à moins de 6
+      ACE <- 6765 # montant plus eleve si enfant à moins de 6
     } else {
       ACE <- 5708 # on suppose qu'il n'y a qu'un seul enfant
     }
-    if (inc > 31711) { # premier seul de réduction (marginal)
+    if (inc > 31711) { # premier seul de reduction (marginal)
       ACE <- ACE - 0.07*min(36997, inc - 31711) # 7% pour revenu entre 31711 et 68708
     }
     if (inc > 68708) { # deuxième seuil
       ACE <- ACE - 0.032*(inc - 68708) # 3,2% pour revenu entre 31711 et 68708
     }
-    ACE <- max(ACE, 0) # on s'assure que la valeur n'est pas négative
+    ACE <- max(ACE, 0) # on s'assure que la valeur n'est pas negative
     if (ce[i] == 1) {
       ACE <- ACE/2 # on divise le montant pas deux pour un couple
     }
@@ -339,46 +339,46 @@ transferts <- function(inc, i){
   if (fm[i] == 1) {
     AllocationFamille <- 2515 + 882 # prime de base plus prime pour monoparental
     if (inc > 36256) {
-      AllocationFamille <- AllocationFamille - 0.04*(inc-36256) # déduction pour haut revenu
+      AllocationFamille <- AllocationFamille - 0.04*(inc-36256) # deduction pour haut revenu
     }
     AllocationFamille <- max(AllocationFamille, 1352) # prime minimum
   } else if (ce[i] == 1) {
     AllocationFamille <- 2515 # montant de base pour un enfant
     if (inc > 49842) {
-      AllocationFamille <- AllocationFamille - 0.04*(inc-49842) # déduction pour haut revenu
+      AllocationFamille <- AllocationFamille - 0.04*(inc-49842) # deduction pour haut revenu
     }
-    AllocationFamille <- max(AllocationFamille, 1000) / 2 # prime minimum, divisée par 2
+    AllocationFamille <- max(AllocationFamille, 1000) / 2 # prime minimum, divisee par 2
   } else {
     AllocationFamille <- 0
   }
   
-  #Crédit solidarité
+  #Credit solidarite
   if (ps[i] == 1) {
     CreditSolidarite <- 297+141+(577) # montant de base
-    if (inc > 35400) { # déduction pour revenu élevé
-      # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
+    if (inc > 35400) { # deduction pour revenu eleve
+      # montant verse ne peut pas etre inferieur à 0 ou au montant de la composante TVQ
       CreditSolidarite <- max(0, 297 + 141 - 0.03*(inc-35400),  CreditSolidarite - 0.06*(inc-35400))
     } 
   } else if (fm[i] == 1) { 
     CreditSolidarite <- 297+141+(577+123) # montant de base
-    if (inc > 35400) { # déduction pour revenu élevé
+    if (inc > 35400) { # deduction pour revenu eleve
       # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
       CreditSolidarite <- max(0, 297 + 141 - 0.03*(inc-35400),  CreditSolidarite - 0.06*(inc-35400))
     } 
   } else if (c[i] == 1) {
     CreditSolidarite <- 297+297+(699) # montant de base
-    if (inc > 35400) { # déduction pour revenu élevé
-      # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
+    if (inc > 35400) { # deduction pour revenu eleve
+      # montant verse ne peut pas etre inferieur à 0 ou au montant de la composante TVQ
       CreditSolidarite <- max(0, 297 + 297 - 0.03*(inc-35400),  CreditSolidarite - 0.06*(inc-35400))
-      # divisé par 2 pour un couple
+      # divise par 2 pour un couple
     }
     CreditSolidarite <- CreditSolidarite / 2
   } else if (ce[i] == 1) {
     CreditSolidarite <- 297+297+(699+123) # montant de base
-    if (inc > 35400) { # déduction pour revenu élevé
-      # montant versé ne peut pas être inferieur à 0 ou au montant de la composante TVQ
+    if (inc > 35400) { # deduction pour revenu eleve
+      # montant verse ne peut pas etre inferieur à 0 ou au montant de la composante TVQ
       CreditSolidarite <- max(0, 297 + 297 - 0.03*(inc-35400),  CreditSolidarite - 0.06*(inc-35400))
-      # disivé par 2 pour un couple
+      # disive par 2 pour un couple
     }
     CreditSolidarite <- CreditSolidarite / 2
   }
@@ -391,7 +391,7 @@ transferts <- function(inc, i){
 ## Calcul du revenu net
 ```{r}
 itax <- function(inc,i){
-  # Calcule les impôts sur le revenu
+  # Calcule les impots sur le revenu
    
   if (inc<=f1){
     prv <- 0
@@ -455,17 +455,17 @@ Notez qu'on peut directement voir l'impact de la fonction de taxe, sans hypothè
 
 ```{r}
 tme <- function(incr,imax,i){
-  # calcule les taux marginaux effectifs d'imposition par incréments de "incr"$, jusqu'à imax$
+  # calcule les taux marginaux effectifs d'imposition par increments de "incr"$, jusqu'a imax$
   incm <- seq(0,imax,by=incr) # vecteur des niveaux de revenus
   tax <- sapply(incm,function(x) itax(x,i)[1]) # applique la taxe sur chaque niveau de revenu
-  tax2 <- c(tax[2:(length(tax))],0) # décale le taux de taxe
+  tax2 <- c(tax[2:(length(tax))],0) # decale le taux de taxe
   deltatax <- tax2-tax # taxe marginale
   tm <- deltatax/incr # taux marginal effectif
   plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI')
   return(list(incm[1:length(incm)-1],tm[1:length(incm)-1]))
 }
 
-# graphique des TMEI par type de ménage, suppose des enfants <6 ans
+# graphique des TMEI par type de menage, suppose des enfants <6 ans
 ps<- c(1,0,0,0)
 c <-  c(0,1,0,0)
 fm <- c(0,0,1,0)
@@ -833,16 +833,40 @@ On a donc une valeur de $\theta$ qui permet de répliquer les moments observés 
 ```{r}
 as <- 0
 ```
-#Pour les personnes qui ont 20 ans et plus, le revenu minimum garanti correspond a 55% du panier de consommation annuel, evalue a 36970.44$ en 2020 pour Montreal (le plus eleve de la province). Le panier de consommation est evalue en dollars constants de 2018. Pour les personnes de 65 ans et plus, le revenu minimum garanti correspond a 100% du panier de consommation de 36970.44$2018.
+Pour les personnes qui ont 20 ans et plus, le revenu minimum garanti correspond a 55% du panier de consommation annuel, evalue a 36970.44 dollars en 2020 pour Montreal (le plus eleve de la province). Le panier de consommation est evalue en dollars constants de 2018. Pour les personnes de 65 ans et plus, le revenu minimum garanti correspond a 100% du panier de consommation de 36970.44 dollars 2018.
 
-if (age_12 >1 & <11)
-rmg <- (36970.44*0.55) #panier de consommation pris pour Montreal (le plus eleve des choix), revenu indique en dollars constants de 2018
+```{r}
+if (ps[i]== 1) {
+   if (age_12 >1 & age_12<10) 
+     rmg <- (36970.44*0.55) # 55% panier de consommation pris pour Montreal (le plus eleve des choix), revenu indique en dollars constants de 2018
+  else if (age_12>11)
+    rmg <- 36970.44 #revenu minimum garanti pour les personnes de 65 ans et plus est egal a 100% du panier de consommation
+  else rmg <-0 #concerne seulement la categorie 1 (15-19 ans), qu'on n'a pas dans l'échantillon
+} 
+  else if (fm[i] == 1) {
+   if (age_12 >1 & age_12<10) 
+     rmg <- (36970.44*0.55*1.45) # 55% panier de consommation pris pour Montreal (le plus eleve des choix), revenu indique en dollars constants de 2018. Plus une représentation des dépenses additionnel entrainer par le fait d'etre un menage monoparentale (ratio determiner par les données du tableau 11-10-0224-01 de statistique canada)
+  else if (age_12>11)
+    rmg <- 36970.44 #revenu minimum garanti pour les personnes de 65 ans et plus est egal a 100% du panier de consommation
+  else rmg <-0 #concerne seulement la categorie 1 (15-19 ans), qu'on n'a pas dans l'échantillon
+}
+  else if (c[i] == 1){ 
+   if (age_12 >1 & age_12<10) 
+     rmg <- (36970.44*0.55*1.87) # 55% panier de consommation pris pour Montreal (le plus eleve des choix), revenu indique en dollars constants de 2018. Plus une représentation des dépenses additionnel entrainer par le fait d'etre un menage monoparentale (ratio determiner par les données du tableau 11-10-0224-01 de statistique canada)
+ else if (age_12>11)
+    rmg <- 36970.44 #revenu minimum garanti pour les personnes de 65 ans et plus est egal a 100% du panier de consommation
+  else rmg <-0 #concerne seulement la categorie 1 (15-19 ans), qu'on n'a pas dans l'échantillon
+}
+  else if (ce[i]==1){
+   if (age_12 >1 & age_12<10) 
+     rmg <- (36970.44*0.55*2.48) #panier de consommation pris pour Montreal (le plus eleve des choix), revenu indique en dollars constants de 2018. Plus une représentation des dépenses additionnel entrainer par le fait d'etre un menage monoparentale (ratio determiner par les données du tableau 11-10-0224-01 de statistique canada)
+  else if (age_12>11)
+    rmg <- 36970.44 #revenu minimum garanti pour les personnes de 65 ans et plus est egal a 100% du panier de consommation
+  else rmg <-0 #concerne seulement la categorie 1 (15-19 ans), qu'on n'a pas dans l'échantillon
+}
 
-else if (age_12 >10)
-rmg <- 36970.44 #revenu minimum garanti pour les personnes de 65 ans et plus est egal a 100% du panier de consommation
 
-else
-rmg <- 0 #concerne seulement la categorie 1 (15-19 ans), qu'on n'a pas dans l'échantillon
+```
 
 ### Modification des TMEI:
 
@@ -878,7 +902,7 @@ hist(matstats_noas[,1])
 # 6. Réforme #2: Prime à l'emploi
 La prime à l'emploi est de 3$/h pour tout individu ayant trouver un emploi et travaillant au moins 30h par semaine. La prime commence à s'appliquer a 30h de travail durant la semaine.
 ```{r}
-if (Lopt[i]>30*weeks) PrimeTravail2 <- (Lopt[i]-(30*weeks))*3 else PrimeTravail2 <- 0
+if (Lhat[i]>30*weeks) PrimeTravail2 <- (Lhat[i]-(30*weeks))*3 else PrimeTravail2 <- 0
 ```
 # 7. Réforme #3: Combinaison de RMG et prime à l'emploi
 
