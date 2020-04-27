@@ -833,6 +833,16 @@ On a donc une valeur de $\theta$ qui permet de répliquer les moments observés 
 ```{r}
 as <- 0
 ```
+#Pour les personnes qui ont 20 ans et plus, le revenu minimum garanti correspond a 55% du panier de consommation annuel, evalue a 36970.44$ en 2020 pour Montreal (le plus eleve de la province). Le panier de consommation est evalue en dollars constants de 2018. Pour les personnes de 65 ans et plus, le revenu minimum garanti correspond a 100% du panier de consommation de 36970.44$2018.
+
+if (age_12 >1 & <11)
+rmg <- (36970.44*0.55) #panier de consommation pris pour Montreal (le plus eleve des choix), revenu indique en dollars constants de 2018
+
+else if (age_12 >10)
+rmg <- 36970.44 #revenu minimum garanti pour les personnes de 65 ans et plus est egal a 100% du panier de consommation
+
+else
+rmg <- 0 #concerne seulement la categorie 1 (15-19 ans), qu'on n'a pas dans l'échantillon
 
 ### Modification des TMEI:
 
