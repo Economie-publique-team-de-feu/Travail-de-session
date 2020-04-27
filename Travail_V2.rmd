@@ -16,6 +16,8 @@ jupyter:
     display_name: R
     language: R
     name: ir
+editor_options: 
+  chunk_output_type: inline
 ---
 
 Dans ce travail, nous proposons des ajustements au modèle de simulation de l'offre de travail au Québec à partir d'une étude publiée par des chercheurs de l'Université Laval en 2013. Le modèle est calibré avec les données du Labour Force Survey pour la province de Québec. Nous modélisons également les règles fiscales québécoises pour inclure les principaux transferts provinciaux et fédéraux. Nous utilisons ensuite ce modèle pour simuler l'effet de différentes réformes de la fiscalité québécoise sur l'offre de travail, le revenu des individus et la dispersion des revenus. Les trois réformes étudiées sont :
@@ -608,7 +610,7 @@ Lmax <- 4250
 weeks <- 50
 lincr <- 250
 nincr <- Lmax/lincr +1
-nsim <- 2
+nsim <- 10
 ```
 
 
@@ -616,7 +618,7 @@ nsim <- 2
 
 Pour calibrer le modèle d'offre de travail, nous allons utiliser les données sur les heures travaillées disponibles dans le *Labour Force Survey*. Comme il y a toujours une variabilité dans les données qui ne peut être captée par le modèle théorique, nous ajoutons des processus aléatoires au modèle spécifié plus haut. Pour ce faire, nous supposons des caractéristiques inobservables des individus qui rendent aléatoire la fonction de préférence pour le loisir:
 
-$$\hat{\alpha_{1i}} = \alpha_{1i}+e^{v_i}$$
+$$\hat{\alpha_{1i}} = \alpha_{1i}+v_i$$
 où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance 0.01.
 
 La matrice *erreurA* pour le coefficient $\hat{\alpha_{1i}}$ contient un terme d'erreur pour chaque individu à chaque simulation et est construite par le code suivant:
@@ -642,7 +644,7 @@ Dans ce cas, nous re-codons les fonctions *alpha1*, *Utilite* et *umarginal* et 
 
 ```{r}
 alphahat<- function(i,theta, sim){
-  alphahat <- as.numeric(alpha1(i, theta)) + exp(erreurA[sim,i])
+  alphahat <- as.numeric(alpha1(i, theta)) + (erreurA[sim,i])
   return(alphahat)
 }
 
@@ -750,11 +752,9 @@ distrhours <- function(theta){
 On peut donc maintenant lancer la calibration. L'objectif de la calibration est de minimiser la somme du carré des écarts entre  les moments simulés *moments* et les moments observés *rmoments*. L'optimisation de la fonction *distrhours* qui calcule les GMM se fait par la fonction *optim* qui cherche les valeurs de *theta* qui minimisent la fonction. Nous donnons un vecteur de départ arbitraire *thetahat* et l'algorithme d'optimisation retourne le vecteur de *thetahat* qui minimise les GMM. 
 
 ```{r}
-thetatry <- c(0.01239040, -0.01531411,  0.01137535,  0.01061802,  0.01987626,  0.01161269, 0.01602443, 0.02, 0.5, 0.01, 0.011, 10)
-# thetatry[4] <- thetatry[4]+0.01
-# thetatry[k+2] <- thetatry[k+2]+1
-# thetatry[k+3] <- thetatry[k+3]+0.7
-thetahat <- rep(0.1, 12)
+thetatry <- c(102, -59,  8,  0.5,  120,  5, 1, 4, 0.01, 5, 2, 10)
+#gmm de depart
+distrhours(thetatry)
 
 out <- optim(thetatry, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
 
@@ -762,6 +762,7 @@ out <- optim(thetatry, fn=distrhours) # minimise la fonction gmmfct prenant thet
 thetatry <- out$par
 print(out)
 ```
+
 
 On voit la valeur calibrée de theta dans $out\$ par$ et la valeur de la fonction objective dans $out\$ value$. On peut maintenant voir les moments simulés (moyenne sur *nsim* simulations) et les moments réels avec le code suivant:
 
@@ -868,7 +869,7 @@ hist(matstats_noas[,1])
 La prime à l'emploi est de 3$/h pour tout individu ayant trouver un emploi et travaillant au moins 30h par semaine. La prime commence à s'appliquer a 30h de travail durant la semaine.
 ```{r}
 if (Lopt[i]>30*weeks) PrimeTravail2 <- (Lopt[i]-(30*weeks))*3 else PrimeTravail2 <- 0
-
+```
 # 7. Réforme #3: Combinaison de RMG et prime à l'emploi
 
 # 8. Comparaisons des réformes
