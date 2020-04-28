@@ -384,15 +384,16 @@ transferts <- function(inc, i){
     }
     CreditSolidarite <- CreditSolidarite / 2
   }
-
-  # Reforme #1: Prime a l'emploi
-  if (exists("Lhat") == TRUE) { #  Lhat n'est pas une variable existante à ce stade, donc on doit tester pour 
-    if (Lhat[i]>30*weeks) {
-      PrimeEmploi <- (Lhat[i]-(30*weeks))*3 
-    } else {
-      PrimeEmploi <- 0 
-    }
-  }
+  
+## Cette partie du code ne fonctionne pas. Lhat n'est pas un vecteur, c'est une fonction Lhat[i] n'existe donc pas
+  # # Reforme #1: Prime a l'emploi
+  # if (exists("Lhat") == TRUE) { #  Lhat n'est pas une variable existante à ce stade, donc on doit tester pour 
+  #   if (Lhat[i]>30*weeks) {
+  #     PrimeEmploi <- (Lhat[i]-(30*weeks))*3 
+  #   } else {
+  #     PrimeEmploi <- 0 
+  #   }
+  # }
 
   # Reforme #2: Revenu minimum garanti
   panier <- 36970.44 # panier de consommation pris pour Montreal
@@ -434,9 +435,9 @@ transferts <- function(inc, i){
   if (reforme == 0) {
     transferts <- TPS_TVH + PrimeTravail + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite
   } else if (reforme == 1) {
-    transferts <- TPS_TVH + PrimeTravail + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite + PrimeEmploi
+    transferts <- TPS_TVH + PrimeTravail + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite #+ PrimeEmploi
   } else if (reforme == 2) {
-    transferts <- rmg + PrimeEmploi
+    transferts <- rmg #+ PrimeEmploi
   }
   return(transferts)
 }
@@ -672,21 +673,30 @@ nsim <- 10
 
 Pour calibrer le modèle d'offre de travail, nous allons utiliser les données sur les heures travaillées disponibles dans le *Labour Force Survey*. Comme il y a toujours une variabilité dans les données qui ne peut être captée par le modèle théorique, nous ajoutons des processus aléatoires au modèle spécifié plus haut. Pour ce faire, nous supposons des caractéristiques inobservables des individus qui rendent aléatoire la fonction de préférence pour le loisir:
 
-$$\hat{\alpha_{1i}} = \alpha_{1i}+\theta_{12}e^{v_i}$$
-où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance 1. Le paramètre $\theta_{12}$ modifie l'ampleur du terme d'erreur et la transformation $e^{v_i}$ empêche d'avoir une valeur négayive de $\hat{\alpha}_{1i}$
+$$\hat{\alpha_{1i}} = \alpha_{1i}+e^{v_i}$$
+où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance 0.01. La transformation $e^{v_i}$ empêche d'avoir une valeur négayive de $\hat{\alpha}_{1i}$
 
 La matrice *erreurA* pour le coefficient $\hat{\alpha_{1i}}$ contient un terme d'erreur pour chaque individu à chaque simulation et est construite par le code suivant:
 
 ```{r}
-erreurA <- matrix(rnorm(n*nsim,0,1), nsim, n)
+erreurA <- matrix(rnorm(n*nsim,0,0.01), nsim, n)
 ```
 
+Nous supposons aussi que la fonction d'utilité elle-même a un terme d'erreur $\epsilon_{i,L}$:
+
+$$\hat{U}_i(C,L)=U_i(C,L)+\theta_{12}e^{\epsilon_{i,L}},$$
+
+où $\epsilon_{i,L}$ est également un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et d'écart-type 1 pour chaque tranche d'heures travaillées pour chaque individu. Encore une fois, la transformation $e^{\epsilon_{i,L}}$ assure une valeur positive du terme d'erreur et par le fait même, que la fonction d'utilité est positive. Le paramètre $\theta_{12}$ modifie l'ampleur du terme d'erreur. 
+
+```{r}
+erreurU <- replicate(n, matrix(rnorm((nincr)*nsim,0,1), nrow=nincr, ncol=nsim))
+```
 
 Dans ce cas, nous re-codons les fonctions *alpha1*, *Utilite* et *umarginal* et *Loptimal* pour quelles incluent les termes d'erreur. 
 
 ```{r}
 alphahat<- function(i,theta, sim){
-  alphahat <- as.numeric(alpha1(i, theta)) + exp(erreurA[sim,i])*theta[12]
+  alphahat <- as.numeric(alpha1(i, theta)) +exp(erreurA[sim,i])
   return(alphahat)
 }
 
@@ -700,9 +710,10 @@ uhat <- function(i, L, theta, sim){
 umarghat <- function(i,theta, sim){
 # calcule l'utilite marginale de l'individu i par increments de incr heures de travail
   lsup <- seq(0,Lmax,by=lincr) # vecteur des heures travaillees
-  util <- sapply(lsup,function(x) uhat(i,x,theta,sim))
+  util <- sapply(lsup,function(x) uhat(i,x,theta,sim))+ exp(as.numeric(erreurU[,sim,i]))*theta[12]
   return(list(lsup,util))
 }
+
 
 #nombre d'heures optimales
 Lhat <- function(i, theta, sim){
@@ -714,6 +725,17 @@ Lhat <- function(i, theta, sim){
   h<-min(lsup[position])
   return(h) 
 }
+
+#teste le nombre d'heures optimales selon les paramètres
+
+simwork<- function(theta){
+  individus <- c(1:n)
+  whsim <- sapply(individus,function(x) Lhat(x,theta,nsim))
+  return(whsim)
+}
+
+testhres <-simwork(theta)
+hist(testhres)
 
 ```
 
@@ -794,7 +816,9 @@ distrhours <- function(theta){
 On peut donc maintenant lancer la calibration. L'objectif de la calibration est de minimiser la somme du carré des écarts entre  les moments simulés *moments* et les moments observés *rmoments*. L'optimisation de la fonction *distrhours* qui calcule les GMM se fait par la fonction *optim* qui cherche les valeurs de *theta* qui minimisent la fonction. Nous donnons un vecteur de départ arbitraire *thetahat* et l'algorithme d'optimisation retourne le vecteur de *thetahat* qui minimise les GMM. 
 
 ```{r}
-thetatry <- c(12, -59,  8,  0.5,  10,  5, 1, 4, 0.01, 5, 2, 10)
+#Paramètre de départ inspiré des paramètres de Clavet, Duclos et Lacroix
+thetatry <- c (104.318386, -54.445962, 12.287784 ,  2.450735 ,118.574461  , 9.823539,
+                7.478973 ,  1.360434 , -2.471970 ,  3.952846,   3.868968 ,  4.478026)
 #gmm de depart
 distrhours(thetatry)
 
@@ -822,19 +846,14 @@ On voit donc que la majorité des moments sont bien simulés, sauf que le modèl
 
 ```{r}
 hist(rhours)
-print(max(rhours))
+#print(max(rhours))
 ```
 
 On voit bien la masse importante juste avant 2000 heures de travail (i.e. 40 heures par semaine pendant 50 semaines), ce qui est intuitivement clair. Le code suivant nous donne un exemple de distribution des heures travaillées données par le modèle.
 
 ```{r}
-
-
-whsim <- rep(0,n)
-for (i in 1:n){
-  whsim[i]<-Lhat(i, thetatry, 1)
-}
-hist(whsim)
+hressim<-simwork(thetatry)
+hist(hressim)
 ```
 
 ## Comparaison des résultats observés et simulés
