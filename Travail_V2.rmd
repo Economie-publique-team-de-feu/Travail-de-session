@@ -386,12 +386,13 @@ transferts <- function(inc, i){
   }
 
   # Reforme #1: Prime a l'emploi
-
-  # if (Lhat[i]>30*weeks) { # Lhat n'est pas une variable existante à ce stade !
-  #   PrimeEmploi <- (Lhat[i]-(30*weeks))*3 
-  # } else {
-  #   PrimeEmploi <- 0 
-  # }
+  if (exists("Lhat") == TRUE) { #  Lhat n'est pas une variable existante à ce stade, donc on doit tester pour 
+    if (Lhat[i]>30*weeks) {
+      PrimeEmploi <- (Lhat[i]-(30*weeks))*3 
+    } else {
+      PrimeEmploi <- 0 
+    }
+  }
 
   # Reforme #2: Revenu minimum garanti
   panier <- 36970.44 # panier de consommation pris pour Montreal
@@ -435,7 +436,7 @@ transferts <- function(inc, i){
   } else if (reforme == 1) {
     transferts <- TPS_TVH + PrimeTravail + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite + PrimeEmploi
   } else if (reforme == 2) {
-    transferts <- rmg # + PrimeEmploi
+    transferts <- rmg + PrimeEmploi
   }
   return(transferts)
 }
