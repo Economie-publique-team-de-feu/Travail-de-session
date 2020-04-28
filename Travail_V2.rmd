@@ -235,6 +235,8 @@ ce : couple avec enfants
 
 ```{r}
 
+reforme <- 0
+
 transferts <- function(inc, i){
   
   #Credit TPS-TVH
@@ -383,7 +385,59 @@ transferts <- function(inc, i){
     CreditSolidarite <- CreditSolidarite / 2
   }
 
-  transferts <- TPS_TVH + PrimeTravail + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite
+  # Reforme #1: Prime a l'emploi
+  if (exists("Lhat") == TRUE) { #  Lhat n'est pas une variable existante à ce stade, donc on doit tester pour 
+    if (Lhat[i]>30*weeks) {
+      PrimeEmploi <- (Lhat[i]-(30*weeks))*3 
+    } else {
+      PrimeEmploi <- 0 
+    }
+  }
+
+  # Reforme #2: Revenu minimum garanti
+  panier <- 36970.44 # panier de consommation pris pour Montreal
+
+  if (ps[i] == 1) {
+    if (age[i] > 1 & age[i] < 11) {
+      rmg <- panier*0.55 # 55 % du panier pour personne de moins de 65 ans
+    } else if (age[i] > 10 ) {
+      rmg <- panier
+    } else {
+      rmg <- 0   
+    }
+  } else if (fm[i] == 1) {
+    if (age[i] > 1 & age[i] < 11) {
+      rmg <- panier*0.55*1.45 # 55 % du panier pour personne de moins de 65 ans ajuste pour situtation familiale
+    } else if (age[i] > 10 ) {
+      rmg <- panier*1.45 
+    } else {
+      rmg <- 0   
+    }
+  } else if (c[i] == 1) {
+    if (age[i] > 1 & age[i] < 11) {
+      rmg <- panier*0.55*1.87 # 55 % du panier pour personne de moins de 65 ans  ajuste pour situtation familiale
+    } else if (age[i] > 10 ) {
+      rmg <- panier*1.87
+    } else {
+      rmg <- 0   
+    }
+  } else if (ce[i] == 1) {
+    if (age[i] > 1 & age[i] < 11) {
+      rmg <- panier*0.55*2.48 # 55 % du panier pour personne de moins de 65 ans  ajuste pour situtation familiale
+    } else if (age[i] > 10 ) {
+      rmg <- panier*2.48
+    } else {
+      rmg <- 0   
+    }
+  }
+
+  if (reforme == 0) {
+    transferts <- TPS_TVH + PrimeTravail + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite
+  } else if (reforme == 1) {
+    transferts <- TPS_TVH + PrimeTravail + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite + PrimeEmploi
+  } else if (reforme == 2) {
+    transferts <- rmg + PrimeEmploi
+  }
   return(transferts)
 }
 ```
@@ -887,7 +941,7 @@ hist(matstats_noas[,1])
 # 6. Réforme #2: Prime à l'emploi
 La prime à l'emploi est de 3$/h pour tout individu ayant trouver un emploi et travaillant au moins 30h par semaine. La prime commence à s'appliquer a 30h de travail durant la semaine.
 ```{r}
-if (Lhat[i]>30*weeks) PrimeTravail2 <- (Lhat[i]-(30*weeks))*3 else PrimeTravail2 <- 0
+
 ```
 # 7. Réforme #3: Combinaison de RMG et prime à l'emploi
 
