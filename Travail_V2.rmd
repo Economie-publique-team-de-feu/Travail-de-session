@@ -740,18 +740,18 @@ distrhours <- function(theta){
 On peut donc maintenant lancer la calibration. L'objectif de la calibration est de minimiser la somme du carré des écarts entre  les moments simulés *moments* et les moments observés *rmoments*. L'optimisation de la fonction *distrhours* qui calcule les GMM se fait par la fonction *optim* qui cherche les valeurs de *theta* qui minimisent la fonction. Nous donnons un vecteur de départ arbitraire *thetahat* et l'algorithme d'optimisation retourne le vecteur de *thetahat* qui minimise les GMM. 
 
 ```{r}
-thetatry <- c(102, -59,  8,  0.5,  120,  5, 1, 4, 0.01, 5, 2, 10)
+thetatry <- c(12, -59,  8,  0.5,  10,  5, 1, 4, 0.01, 5, 2, 10)
 #gmm de depart
-#distrhours(thetatry)
+distrhours(thetatry)
 
 #Calibration - ne pas rouler, ca prend 16 h....
-#out <- optim(thetatry, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
-# thetatry <- out$par
-# print(out)
+out <- optim(thetatry, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
+thetatry <- out$par
+print(out)
 
 #Parametres estimes par la calibration
-thetamagique <- c (104.318386, -54.445962, 12.287784 ,  2.450735 ,118.574461  , 9.823539,
-                    7.478973 ,  1.360434 , -2.471970 ,  3.952846,   3.868968 ,  4.478026)
+#thetamagique <- c (104.318386, -54.445962, 12.287784 ,  2.450735 ,118.574461  , 9.823539,
+                    #7.478973 ,  1.360434 , -2.471970 ,  3.952846,   3.868968 ,  4.478026)
 
 ```
 
@@ -759,8 +759,8 @@ thetamagique <- c (104.318386, -54.445962, 12.287784 ,  2.450735 ,118.574461  , 
 On voit la valeur calibrée de theta dans $out\$ par$ et la valeur de la fonction objective dans $out\$ value$. On peut maintenant voir les moments simulés (moyenne sur *nsim* simulations) et les moments réels avec le code suivant:
 
 ```{r }
-print(thetamagique)
-print(simhours(thetamagique))
+print(thetatry)
+print(simhours(thetatry))
 print(rmoments)
 ```
 
@@ -778,7 +778,7 @@ On voit bien la masse importante juste avant 2000 heures de travail (i.e. 40 heu
 
 whsim <- rep(0,n)
 for (i in 1:n){
-  whsim[i]<-Lhat(i, thetamagique, 1)
+  whsim[i]<-Lhat(i, thetatry, 1)
 }
 hist(whsim)
 ```
