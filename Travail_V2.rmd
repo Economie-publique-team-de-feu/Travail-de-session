@@ -416,33 +416,22 @@ transferts <- function(inc, i){
   if (ps[i] == 1) {
     if (age[i] > 1 & age[i] < 11) {
       rmg <- panier*0.55 # 55 % du panier pour personne de moins de 65 ans
-    } else if (age[i] > 10 ) {
-      rmg <- panier
-    } else {
-      rmg <- 0   
     }
   } else if (fm[i] == 1) {
     if (age[i] > 1 & age[i] < 11) {
       rmg <- panier*0.55*1.45 # 55 % du panier pour personne de moins de 65 ans ajuste pour situtation familiale
-    } else if (age[i] > 10 ) {
-      rmg <- panier*1.45 
-    } else {
-      rmg <- 0   
     }
   } else if (c[i] == 1) {
     if (age[i] > 1 & age[i] < 11) {
       rmg <- panier*0.55*1.87/2 # 55 % du panier pour personne de moins de 65 ans  ajuste pour situtation familiale, la division par deux est pour faire un estimation individuelle
-    } else if (age[i] > 10 ) {
-      rmg <- panier*1.87/2 # la division par deux est pour faire un estimation individuelle
-    } else {
-      rmg <- 0   
     }
   } else if (ce[i] == 1) {
     if (age[i] > 1 & age[i] < 11) {
       rmg <- panier*0.55*2.48/2 # 55 % du panier pour personne de moins de 65 ans  ajuste pour situtation familiale,  la division par deux est pour faire un estimation individuelle
-    } else if (age[i] > 10 ) {
-      rmg <- panier*2.48/2 # la division par deux est pour faire un estimation individuelle
-    } else {
+    }
+  } else if (age[i] > 10 ) {
+      rmg <- panier #100% du panier pour les personnes de 65 ans et plus où nous prenons pour compte qu'ils n'ont plus d'enfant à charge
+  } else {
       rmg <- 0   
     }
   }
@@ -450,7 +439,7 @@ transferts <- function(inc, i){
   if (reforme == 0) {
     transferts <- TPS_TVH + PrimeTravail + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite
   } else if (reforme == 1) {
-    transferts <- TPS_TVH + PrimeTravail + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite #+ PrimeEmploi
+    transferts <- TPS_TVH + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite #+ PrimeEmploi
   } else if (reforme == 2) {
     transferts <- rmg
   }
