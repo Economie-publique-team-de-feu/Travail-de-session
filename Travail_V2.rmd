@@ -36,6 +36,7 @@ Comme mentionné, les effets de ces réformes seront comparés sur la base de l'
 ```{r}
 library(readr) # package pour lire les .csv
 library(compiler) # package pour le Just-in-time compilation
+library(DescTools) # Package pour le coefficient de Gini
 enableJIT(3) # Option du package compiler
 set.seed(123) # Pour répliquer les résultats
 
@@ -227,15 +228,16 @@ Nous allons utiliser les taux de taxe et paliers suivants:
 
 ## Transferts
 La liste des principaux transferts fédéraux et provinciaux est tirée de l'étude «TAUX MARGINAUX EFFECTIFS D’IMPOSITION : UNE COMPARAISON QUÉBEC-ONTARIO » de Blancquaert, Clavet, Duclos, Fortin et Marchand (2017). 
-La plupart des transferts dépendent du type de ménage. Pour les ménages avec enfants, nous avons supposé un nombre de 1 enfant par ménage. Comme le LFS est une enquête sur les individus et non sur les ménages, les transferts destinés à des couples ont été divisés par deux de ne pas distribuer en double les montants.
+La plupart des transferts dépendent du type de ménage. Pour les ménages avec enfants, nous avons supposé un nombre de 1 enfant par ménage. Comme le LFS est une enquête sur les individus et non sur les ménages, les transferts destinés à des couples ont été divisés par deux de ne pas distribuer en double les montants. Les transferts initiaux sont activés lorsque *reforme = 0*. 
+
 Les abréviations suivantes ont été utilisées : 
-ps : personne seule
-c : couple sans enfants
-fm : famille monoparentale
-ce : couple avec enfants
+* *ps* : personne seule
+* *c* : couple sans enfants
+* *fm* : famille monoparentale
+* *ce* : couple avec enfants
 
 ```{r}
-
+#la variable reforme indique quel scenario utiliser. reforme = 0 est le scenario de base
 reforme <- 0
 
 transferts <- function(inc, i){
@@ -458,6 +460,9 @@ transferts <- function(inc, i){
 
 ## Calcul du revenu net
 ```{r}
+# posons l'aide sociale à 1 (0 si elle n'existe pas)
+as<-1
+
 itax <- function(inc,i){
   # Calcule les impots sur le revenu
    
@@ -506,7 +511,7 @@ itax <- function(inc,i){
   rrq <- 0 #max(min(58700,inc)-3500,0)*0.057
   rqap <- min(78500,inc)*0.00494
   
-  asociale <- max(690*12 - max(inc-200*12,0),0)
+  asociale <- max(690*12 - max(inc-200*12,0),0)*as
   tax <-  prv + fed + aemploi + rrq + rqap - asociale -transferts(inc,i)
   
   return(c(tax,prv,fed,aemploi,rrq,rqap,asociale, transferts(inc,i)
@@ -514,12 +519,12 @@ itax <- function(inc,i){
 }
 ```
 
-Cette fonction de taxe prend en compte les paliers d'imposition fédéraux (*fed*) et québécois (*prv*), ainsi que les contributions à l'assurance emploi (*aemploi*), au RQAP (*rqap*) et, finalement, au programme d'aide sociale (*asociale*). Notez que la contribution au RRQ (*rrq*) est commentée puisque cela dépend de l'hypothèse faite sur la substituabilité intertemporelle des individus. 
- ***à compléter***
+Cette fonction de taxe prend en compte les paliers d'imposition fédéraux (*fed*) et québécois (*prv*), ainsi que les contributions à l'assurance emploi (*aemploi*), au RQAP (*rqap*) et, finalement, au programme d'aide sociale (*asociale*). Notez que nous n'avons pas inclus la contribution au RRQ puisque nous supposons qu'il s'agit uniquement d'un lissage intertemporel de la consommation des individus et, du même fait, n'affecte pas leur revenu permanent. 
+
 
 ## Taux marginaux effectifs d'imposition
 
-Notez qu'on peut directement voir l'impact de la fonction de taxe, sans hypothèses sur le comportement des individus, en regardant les taux marginaux effectifs (TME) d'imposition. Le code suivant crée un graphique pour des incréments salariaux annuels de *incr* jusqu'à un revenu annuel de *imax* \$
+On peut directement voir l'impact de la fonction de taxe, sans hypothèses sur le comportement des individus, en regardant les taux marginaux effectifs d'imposition (TMEI). Le code suivant crée un graphique pour des incréments salariaux annuels de *incr* jusqu'à un revenu annuel de *imax* \$ pour chacun des 4 types de ménages (personne seule (ps), couple (c), famille monoparentale (fm) et couple avec enfants (ce)).
 
 ```{r}
 tme <- function(incr,imax,i){
@@ -671,7 +676,7 @@ Les variables globales sont définies comme suit:
 
 * *nincr* est le nombre d'incréments (le nombre de sauts) possibles. 
 
-* *nsim* est le nombre de simulations que nous allons faire pour déterminer les valeurs optimales de $\beta$ et de $\theta$. Nous l'avons fixé à 100. 
+* *nsim* est le nombre de simulations que nous allons faire pour ajouter des termes d'erreurs dans le modèle. Nous l'avons fixé à 10. Un nombre trop faible induit des risques que les erreurs induisent trop de *bruit* dans les données et un nombre trop élevé allonge la durée de compilation du code.  
 
 ```{r}
 Lmax <- 4250
@@ -699,7 +704,7 @@ Nous supposons aussi que la fonction d'utilité elle-même a un terme d'erreur $
 
 $$\hat{U}_i(C,L)=U_i(C,L)+\theta_{12}e^{\epsilon_{i,L}},$$
 
-où $\epsilon_{i,L}$ est également un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et d'écart-type 1 pour chaque tranche d'heures travaillées pour chaque individu. Encore une fois, la transformation $e^{\epsilon_{i,L}}$ assure une valeur positive du terme d'erreur et par le fait même, que la fonction d'utilité est positive. Le paramètre $\theta_{12}$ modifie l'ampleur du terme d'erreur. 
+où $\epsilon_{i,L}$ est également un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et d'écart-type 1 pour chaque tranche d'heures travaillées pour chaque individu. Encore une fois, la transformation $e^{\epsilon_{i,L}}$ assure une valeur positive du terme d'erreur et par le fait même, que la fonction d'utilité demeure positive. Le paramètre $\theta_{12}$ modifie l'ampleur du terme d'erreur afin d'ajuster l'écart-type des heures simulées à celui des heures observées. 
 
 ```{r}
 erreurU <- replicate(n, matrix(rnorm((nincr)*nsim,0,1), nrow=nincr, ncol=nsim))
@@ -737,16 +742,13 @@ Lhat <- function(i, theta, sim){
   return(h) 
 }
 
-#teste le nombre d'heures optimales selon les paramètres
+#calcule le nombre d'heures optimales pour les n individus selon les paramètres
 
 simwork<- function(theta, sim){
   individus <- c(1:n)
   whsim <- sapply(individus,function(x) Lhat(x,theta,sim))
   return(whsim)
 }
-
-testhres <-simwork(theta, nsim)
-hist(testhres)
 
 ```
 
@@ -844,8 +846,12 @@ thetatry <-c(  41.607398,  40.045893, -1.648033, -103.284407, 26.623463,  56.483
 #Ajustement a la main des parametres pour reduire l'ecart entre les moments
 thetatry[10]<- thetatry[10]+150
 thetatry[11]<-thetatry[11]+30
+
+#gmm finaux
+distrhours(thetatry)
 ```
 
+## Résultats de la calibration
 
 On voit la valeur calibrée de theta dans $out\$ par$ et la valeur de la fonction objective dans $out\$ value$. On peut maintenant voir les moments simulés (moyenne sur *nsim* simulations) et les moments réels avec le code suivant:
 
@@ -855,23 +861,23 @@ print(simhours(thetatry))
 print(rmoments)
 ```
 
-On voit donc que la majorité des moments sont bien simulés, sauf que le modèle produit trop de variation dans les heures travaillées : l'écart-type des heures travaillées est très grand. Regardons la distribution réelle des heures travaillées.
+On voit donc que la majorité des moments sont bien simulés, sauf que le modèle produit un peu trop de variation dans les heures travaillées et que la proportion des gens ne travaillant pas est un peu plus faible que dans les données observées. Voici la distribution des heures travaillées observées et simulées: 
 
 ```{r}
-hist(rhours)
+hist(rhours, main = "Distribution des heures observées")
 #print(max(rhours))
 ```
 
 On voit bien la masse importante juste avant 2000 heures de travail (i.e. 40 heures par semaine pendant 50 semaines), ce qui est intuitivement clair. Le code suivant nous donne un exemple de distribution des heures travaillées données par le modèle.
 
 ```{r}
-hressim<-simwork(thetatry, nsim)
-hist(hressim)
+hres0<-simwork(thetatry, nsim)
+hist(hres0, main = "Distribution des heures simulées, scénario de base")
 ```
 
-## Comparaison des résultats observés et simulés
+## Résultats du scénario de base 
 
-Pour l'instant, la valeur estimée de $\theta$ nous donne une distribution des heures travaillées, ce qui nous permet de calculer les taxes, le bien-être et beaucoup d'autres variables.
+Pour l'instant, la valeur estimée de $\thetatry$ nous donne une distribution des heures travaillées, ce qui nous permet de calculer les taxes, le bien-être et beaucoup d'autres variables. La matrice *stats0* contient les vecteurs d'heures de travail, d'utilité, de revenu brut, de taxes et transferts et de revenu brut pour les `r n` individus (moyennen sur `r nsim` simulations). 
 
 ```{r}
 makestats <- function(theta){
@@ -890,12 +896,19 @@ makestats <- function(theta){
    }
    return(stats_var)
 }
-matstats <- makestats(thetatry)
-colnames(matstats) <- c("heures travaillées","utilité","revenu brut","taxes et transferts", "revenu net")
-summary(matstats)
+stats0 <- makestats(thetatry)
+colnames(stats0) <- c("heures travaillées","utilité","revenu brut","taxes et transferts", "revenu net")
+summary(stats0)
 ```
 
-Cela nous donne donc des données intéressantes à comparer. Vous pouvez aussi naturellement vous intéresser à d'autres variables, comme l'indice de Gini. Faites par contre attention d'utiliser correctement les poids échantillonaux lorsque vous travaillez avec des variables globales!
+Calcul du coefficient de Gini sur le revenu net
+
+```{r}
+Gini0 <- Gini(x=stats0[,5], n=wght)
+print(Gini0)
+```
+
+Notre coefficient de Gini pondéré de `r Gini0` est beaucoup plus faible (plus égalitaire) que celui qui est calculé par Statistique Canada, qui était de 0.284 en 2016 (http://qceco.ca/n/3739). Sans avoir à réfléter parfaitement la réalité québécoise, il nous permettra de comparer les réformes au scénario de base (*reforme=0*). 
 
 
 # 5. Réforme #1 : Revenu minimum garanti
