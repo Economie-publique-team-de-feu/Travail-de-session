@@ -984,3 +984,41 @@ prime <- 3
 # 7. Réforme #3: Combinaison de RMG et prime à l'emploi
 
 # 8. Comparaisons des réformes
+
+## Bibliographie 
+
+BOCCANFUSO, Dorothée, COUSINEAU, Jean-Michel, FONSECA, Raquel, Le revenu minimum garanti : une utopie? Une inspiration pour le Québec, sommaire, rapport final du comité d'experts sur le revenu minimum garanti, Ministère du travail, de l'emploi et de la solidarité sociale, 2017, document disponible à l'adresse < https://www.mtess.gouv.qc.ca/grands-dossiers/revenu_min_garanti.asp >, consulté le 27 mars 2020
+
+CLAVET, Nicholas-James, DUCLOS, Jean-Yves, LACROIX, Guy, Fighting Poverty: Assessing the effect of guaranteed minimum income proposal in Quebec, project muse, University of Toronto Press, Canadian Public Policy, volume 39, no. 4, 2013, p. 491-516, article accessible à l'adresse < https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491 >, consulté le 25 mars 2020
+
+BLANCQUAERT, Arnaud, CLAVET, Nicholas-James, DUCLOS, Jean-Yves, FORTIN, Bernard, MARCHAND, Steeve, Taux marginaux effectifs d'imposition: une comparaison Québec-Ontario, Actualité économique,  revue d'analyse économique, vol.93, no. 4, 2017, p. 532-558, article accessible à l'adresse < http://expertise.hec.ca/actualiteeconomique/wp-content/uploads/2018/01/93_4_blancquaert_clavet_duclos_fortin_marchand.pdf >, consulté le 29 mars 2020
+
+HURTEAU, Philippe, LABRIE, Vician, NGUYEN, Minh, Le revenu viable 2019 et les situations de pauvreté, Données pour différentes localités du Québec, IRIS, note socioéconomique, 2019, article accessible à l'adresse < https://iris-recherche.qc.ca/publications/revenuviable2019 >, consulté le 8 avril 2020
+
+Chaire en fiscalité et finances publiques, Crédit d'impôt pour la TPS/TVH, École de gestion de l'Université de Sherbrooke, 2019, article accessible à l'adresse < https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/credit-impot-tps-tvh/ >, consulté le 8 avril 2020
+
+ Chaire en fiscalité et en finances publiques, Allocation canadienne pour enfants, École de gestion de l'Université de Sherbrooke, 2019, article accessible à l'adresse < https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-canadienne-enfants/ >, consulté le 8 avril 2020
+
+Chaire en fiscalité et en finances publiques, Allocation famille, École de gestion de l'Université de Sherbrooke, 2019, article accessible à l'adresse < https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-famille-soutien-enfants/ >, consulté le 8 avril 2020
+
+Chaire en fiscalité et en finances publiques, Crédit d'impôt pour solidarité, École de gestion de l'Université de Sherbrooke, 2019, article accessible à l'adresse < https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/credit-impot-solidarite/ >, consulté le 8 avril 2020
+
+Chaire en fiscalité et en finances publiques, Allocation canadienne pour les travailleurs, École de gestion de l'Université de Sherbrooke, 2020, article accessible à l'adresse < https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-canadienne-pour-les-travailleurs/ >, consulté le 8 avril 2020
+
+Gouvernement du Canada, Les taux d'imposition canadiens pour les particuliers - années courante et années passées, 2020, données accessibles à l'adresse < https://www.canada.ca/fr/agence-revenu/services/impot/particuliers/foire-questions-particuliers/taux-imposition-canadiens-particuliers-annee-courante-annees-passees.html#federal >, consulté le 8 avril 2020 
+
+Gouvernement du Québec, Programme d'aide sociale, Services Québec - Citoyens, s'installer au Québec, Ministère du travail, de l'emploi et de la solidarité sociale, données accessibles à l'adresse < http://www4.gouv.qc.ca/FR/Portail/Citoyens/Evenements/immigrer-au-quebec/Pages/programme-aide-sociale.aspx >, consulté le 8 avril 2020 
+
+Gouvernement du Québec, Crédit d'impôt pour solidarité, Services Québec -Citoyens, Propriétaires d'une habitation, 2020, données accessibles à l'adresse < http://www4.gouv.qc.ca/FR/Portail/Citoyens/Evenements/acheter-renover-maison/Pages/credit-impot-pour-solidarite.aspx >, consulté le 8 avril 2020
+
+NRG CPA inc., Déductions à la source et charges sociales, 2020, données disponibles à l'adresse < http://www.nrgcpa.ca/deductions-a-la-source-et-charges-sociales >, consulté le 8 avril 2020
+
+Revenu Québec, Taux d'imposition, 2020, données accessibles à l'adresse < https://www.revenuquebec.ca/fr/citoyens/declaration-de-revenus/produire-votre-declaration-de-revenus/taux-dimposition/ >, consulté le 8 avril 2020 
+
+Revenu Québec, Crédits d'impôt relatifs à la prime au travail, 2020, données accessibles à l'adresse < https://www.revenuquebec.ca/fr/citoyens/credits-dimpot/credits-dimpot-relatifs-a-la-prime-au-travail/ >, consulté le 8 avril 2020 
+
+Statistique Canada, Tableau 11-10-0066-01, Seuil de la Mesure du panier de consommation (MPC) pour famille de référence selon la région de la Mesure du panier de consommation, la composante et l'année de basei, données accessibles à l'adresse < https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1110006601 >, consulté le 8 avril 2020 
+
+Statistique Canada, Tableau 11-10-0224-01, Dépenses des ménages selon le type de ménage, données accessibles à l'adresse < https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1110022401 >, consulté le 8 avril 2020
+
+Statistique Canada, Tableau 18-10-0004-13, Indice des prix à la consommation selon le groupe de produits, données mensuelles, variation en pourcentage, non désaisonnalisées, Canada, provinces, Whitehorse, Yellowknife et Iqaluit, données accessibles à l'adresse < https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1810000413 >, consulté le 8 avril 2020 
