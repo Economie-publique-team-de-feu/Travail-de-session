@@ -66,12 +66,12 @@ Pour coder la fonction d'utilité, la vecteur de coefficients pour les fonctions
 ```{r}
 Utilite <- function(i,L,theta){
 # Fonction d'utilité du travail et de la consommation
-      util <- alpha1(i,theta)*log(Lmax-L)+ theta[7]*log((Lmax-L)^2)+  theta[8]*log(Y(i,L)) + theta[9]*log((Y(i,L))^2)+ theta[10]*as.numeric(L==0) + theta[11]*as.numeric((L>=1750 & L<=2000))
+      util <- (alpha1(i,theta)*log(Lmax-L)+ theta[7]*log((Lmax-L)^2)+  theta[8]*log(Y(i,L)) + theta[9]*log((Y(i,L))^2)+ theta[10]*as.numeric(L==0) + theta[11]*as.numeric((L>=1750 & L<=2000)))
   return(util)
 }
 
 alpha1 <- function(i, theta){
-    alpha1 <- theta[1]+ theta[2]*log(age[i])+ theta[3]*log((age[i])^2)+ theta[4]*prescolaire[i]+ theta[5]*sexe[i] + theta[6]*educ[i]
+    alpha1 <- (theta[1]+ theta[2]*log(age[i])+ theta[3]*log((age[i])^2)+ theta[4]*prescolaire[i]+ theta[5]*sexe[i] + theta[6]*educ[i])
   return(alpha1)
 }
 ```
@@ -701,10 +701,8 @@ alphahat<- function(i,theta, sim){
 }
 
 uhat <- function(i, L, theta, sim){
-  uhat <- alphahat(i,theta, sim)*log(Lmax-L)+ theta[7]*log((Lmax-L)^2)
-  +theta[8]*log(Y(i,L)) + theta[9]*log((Y(i,L))^2)+ theta[10]*as.numeric(L==0)
-  +theta[11]*as.numeric((L>=1750 & L<=2000))
-  return( uhat)
+  uhat <- (alphahat(i,theta, sim)*log(Lmax-L)+ theta[7]*log((Lmax-L)^2)+theta[8]*log(Y(i,L)) + theta[9]*log((Y(i,L))^2)+ theta[10]*as.numeric(L==0)+theta[11]*as.numeric((L>=1750 & L<=2000)))
+return( uhat)
 }
 
 umarghat <- function(i,theta, sim){
@@ -728,13 +726,13 @@ Lhat <- function(i, theta, sim){
 
 #teste le nombre d'heures optimales selon les paramètres
 
-simwork<- function(theta){
+simwork<- function(theta, sim){
   individus <- c(1:n)
-  whsim <- sapply(individus,function(x) Lhat(x,theta,nsim))
+  whsim <- sapply(individus,function(x) Lhat(x,theta,sim))
   return(whsim)
 }
 
-testhres <-simwork(theta)
+testhres <-simwork(theta, nsim)
 hist(testhres)
 
 ```
@@ -816,21 +814,23 @@ distrhours <- function(theta){
 On peut donc maintenant lancer la calibration. L'objectif de la calibration est de minimiser la somme du carré des écarts entre  les moments simulés *moments* et les moments observés *rmoments*. L'optimisation de la fonction *distrhours* qui calcule les GMM se fait par la fonction *optim* qui cherche les valeurs de *theta* qui minimisent la fonction. Nous donnons un vecteur de départ arbitraire *thetahat* et l'algorithme d'optimisation retourne le vecteur de *thetahat* qui minimise les GMM. 
 
 ```{r}
-#Paramètre de départ inspiré des paramètres de Clavet, Duclos et Lacroix
-thetatry <- c (104.318386, -54.445962, 12.287784 ,  2.450735 ,118.574461  , 9.823539,
-                7.478973 ,  1.360434 , -2.471970 ,  3.952846,   3.868968 ,  4.478026)
+#Valeurs     de départ inspirés des paramètres de Clavet, Duclos et Lacroix
+thetastart <- c( 102, -59 ,  8, 0.5 ,  100  ,11,
+              1.3, 4 , 0.01  , 5, 2 , 10)
 #gmm de depart
-distrhours(thetatry)
+distrhours(thetastart)
 
-#Calibration - ne pas rouler, ca prend 16 h....
-out <- optim(thetatry, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
-thetatry <- out$par
-print(out)
+# #Calibration - ne pas rouler, ca prend 16 h....
+# out <- optim(thetastart, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
+# thetatry <- out$par
+# print(out)
 
 #Parametres estimes par la calibration
-#thetamagique <- c (104.318386, -54.445962, 12.287784 ,  2.450735 ,118.574461  , 9.823539,
-                    #7.478973 ,  1.360434 , -2.471970 ,  3.952846,   3.868968 ,  4.478026)
-
+thetatry <-c(  41.607398,  40.045893, -1.648033, -103.284407, 26.623463,  56.483046,
+             -10.824611,   63.101435, 124.403127, -28.121906, 12.512040 ,  24.094047)
+#Ajustement a la main des parametres pour reduire l'ecart entre les moments
+thetatry[10]<- thetatry[10]+150
+thetatry[11]<-thetatry[11]+30
 ```
 
 
@@ -852,7 +852,7 @@ hist(rhours)
 On voit bien la masse importante juste avant 2000 heures de travail (i.e. 40 heures par semaine pendant 50 semaines), ce qui est intuitivement clair. Le code suivant nous donne un exemple de distribution des heures travaillées données par le modèle.
 
 ```{r}
-hressim<-simwork(thetatry)
+hressim<-simwork(thetatry, nsim)
 hist(hressim)
 ```
 
@@ -860,24 +860,25 @@ hist(hressim)
 
 Pour l'instant, la valeur estimée de $\theta$ nous donne une distribution des heures travaillées, ce qui nous permet de calculer les taxes, le bien-être et beaucoup d'autres variables.
 
-```{r eval=FALSE, echo=TRUE}
+```{r}
 makestats <- function(theta){
-   stats_var <- matrix(0,n,4)
+   stats_var <- matrix(0,n,5)
    for (sim in 1:nsim){
      h <- simwork(theta,sim)
      inc <- h*wage
-     t <- sapply(inc,function(x) itax(x)[1])
-     alpha <- exp(as.numeric(Xmat%*%matrix(theta[1:k],k,1)))
-     u <- sapply(1:n, function(i) Utilite(i,h[i],alpha,theta))
-     stats_var[,1] <- stats_var[,1] + (sort(h)/nsim)
-     stats_var[,2] <- stats_var[,2] +(sort(u)/nsim)
-     stats_var[,3] <- stats_var[,3] +(sort(inc)/nsim)
-     stats_var[,4] <- stats_var[,4] +(sort(t)/nsim)
+     t <- sapply(1:n,function(i) itax(h[i]*wage[i], i)[1])
+     u <- sapply(1:n, function(i) Utilite(i,h[i],theta))
+     Ynet <- sapply(1:n, function(i) Y(i, h[i]))
+     stats_var[,1] <- stats_var[,1] + (h)/nsim
+     stats_var[,2] <- stats_var[,2] +(u)/nsim
+     stats_var[,3] <- stats_var[,3] +(inc)/nsim
+     stats_var[,4] <- stats_var[,4] +(t)/nsim
+     stats_var[,5] <- stats_var[,5] + (Ynet)/nsim
    }
    return(stats_var)
 }
 matstats <- makestats(thetatry)
-colnames(matstats) <- c("heures travaillées","utilité","revenu brut","taxes et transferts")
+colnames(matstats) <- c("heures travaillées","utilité","revenu brut","taxes et transferts", "revenu net")
 summary(matstats)
 ```
 
@@ -896,7 +897,7 @@ as <- 0
 ```
 Pour les personnes qui ont 20 ans et plus, le revenu minimum garanti correspond a 55% du panier de consommation annuel, evalue a 36970.44 dollars en 2020 pour Montreal (le plus eleve de la province). Le panier de consommation est evalue en dollars constants de 2018. Pour les personnes de 65 ans et plus, le revenu minimum garanti correspond a 100% du panier de consommation de 36970.44 dollars 2018.
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 if (ps[i]== 1) {
    if (age_12 >1 & age_12<10) 
      rmg <- (36970.44*0.55) # 55% panier de consommation pris pour Montreal (le plus eleve des choix), revenu indique en dollars constants de 2018
@@ -960,7 +961,7 @@ hist(matstats_noas[,1])
 # 6. Réforme #2: Prime à l'emploi
 La prime à l'emploi est de 3$/h pour tout individu ayant trouver un emploi et travaillant au moins 30h par semaine. La prime commence à s'appliquer a 30h de travail durant la semaine.
 ```{r}
-
+prime <- 3
 ```
 # 7. Réforme #3: Combinaison de RMG et prime à l'emploi
 
