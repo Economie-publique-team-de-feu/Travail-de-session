@@ -98,7 +98,7 @@ Y <- function(i,L){
 }
 ```
 
-La consommation est une fonction de l'individu *i* (son salaire) et du nombre d'heures travaillées *L*. Elle dépend aussi de la taxation du revenu par la fonction *itax*, qui sera définie à la section 2 sur les règles fiscales qubécoises et canadiennes. 
+La consommation est une fonction de l'individu *i* (son salaire) et du nombre d'heures travaillées *L*. Elle dépend aussi de la taxation du revenu par la fonction *itax*, qui sera définie à la section 2 sur les règles fiscales québécoises et canadiennes. 
 
 ## Maximisation sous contrainte
 
@@ -195,6 +195,7 @@ Nous allons utiliser les taux de taxe et paliers suivants:
 ```{r}
   # source1: http://www.nrgcpa.ca/deductions-a-la-source-et-charges-sociales
   # source2: http://www4.gouv.qc.ca/FR/Portail/Citoyens/Evenements/immigrer-au-quebec/Pages/programme-aide-sociale.aspx
+  # source3 :https://www.canada.ca/fr/agence-revenu/services/impot/particuliers/foire-questions-particuliers/taux-imposition-canadiens-particuliers-annee-courante-annees-passees.html#federal 
 
   # taux de taxe QC
   pp1 <- 0.15
@@ -240,6 +241,7 @@ reforme <- 0
 transferts <- function(inc, i){
   
   #Credit TPS-TVH
+  #sources des donnees :  https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/credit-impot-tps-tvh/
   TPS_TVH <- 296 # montant de base
   if (c[i] == 1 | ce[i] == 1 | fm[i] == 1) { 
     TPS_TVH <- TPS_TVH + 296 # montant si personne a charge ou monoparental
@@ -261,7 +263,8 @@ transferts <- function(inc, i){
   
   
   #Prime au travail maximal
-  # Bonifie le revenu de travail d'un % à partir d'un seuil, puis diminue de 10% à parti d'un second seuil 
+  # Sources des donnees : https://www.revenuquebec.ca/fr/citoyens/credits-dimpot/credits-dimpot-relatifs-a-la-prime-au-travail/
+  # Bonifie le revenu de travail d'un % à partir d'un seuil, puis diminue de 10% à partir d'un second seuil 
   if (ps[i] == 1){
     if (inc > 2400 & inc < 19456){  # celibataire
       PrimeTravail <- min(874, 0.105*(inc-2400)) - max(0, 0.1*(inc-10720))
@@ -276,19 +279,20 @@ transferts <- function(inc, i){
     }
   } else if (c[i] == 1){
     if (inc > 3600 & inc < 30217){ # couple
-      PrimeTravail <- (min(1363, 0.105*(inc-3600)) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
+      PrimeTravail <- (min(1363, 0.105*(inc-3600)) - max(0, 0.1*(inc-16584))) / 2 # divise en 2 pour couple
     } else {
       PrimeTravail <- 0
     }
   } else if (ce[i] == 1){
     if (inc > 3600 & inc < 49044){ # couple avec enfant
-      PrimeTravail <- (min(3246, 0.25*(inc-3600)) - max(0, 0.1*(inc-16584))) / 2 # divisé en 2 pour couple
+      PrimeTravail <- (min(3246, 0.25*(inc-3600)) - max(0, 0.1*(inc-16584))) / 2 # divise en 2 pour couple
     } else {
       PrimeTravail <- 0
     }
   } # les valeurs pour 2019 ont ete utilisees
 
   #Allocation canadienne pour les travailleurs
+  #Source des donnees : https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-canadienne-pour-les-travailleurs/ 
   if (ps[i] == 1){
     if (inc > 2400 & inc < 23458){ # celibataire
       AllocationTravailleur <- min(2280, 0.274*(inc-2400)) - max(0, 0.2*(inc-12060))
@@ -316,6 +320,7 @@ transferts <- function(inc, i){
   }
   
   #Allocation canadienne pour enfants
+  # Source des donnees : https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-canadienne-enfants/
   if (ce[i] == 1 | fm[i] ==1){   # Aucune distinction entre famille monoparentale et couple
     if (prescolaire[i] == 1) {
       ACE <- 6765 # montant plus eleve si enfant à moins de 6
@@ -338,6 +343,7 @@ transferts <- function(inc, i){
   
   
   #Allocation famille
+  # Source des donnees : https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-famille-soutien-enfants/
   if (fm[i] == 1) {
     AllocationFamille <- 2515 + 882 # prime de base plus prime pour monoparental
     if (inc > 36256) {
@@ -355,6 +361,7 @@ transferts <- function(inc, i){
   }
   
   #Credit solidarite
+  # Sources des donnees : http://www4.gouv.qc.ca/FR/Portail/Citoyens/Evenements/acheter-renover-maison/Pages/credit-impot-pour-solidarite.aspx  et https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/credit-impot-solidarite/ 
   if (ps[i] == 1) {
     CreditSolidarite <- 297+141+(577) # montant de base
     if (inc > 35400) { # deduction pour revenu eleve
@@ -385,17 +392,23 @@ transferts <- function(inc, i){
     CreditSolidarite <- CreditSolidarite / 2
   }
   
-## Cette partie du code ne fonctionne pas. Lhat n'est pas un vecteur, c'est une fonction Lhat[i] n'existe donc pas
+## Cette partie du code ne fonctionne pas. Lhat n'est pas un vecteur, c'est une fonction Lhat[i] n'existe donc pas -> Lhat[i] remplacer par inc/wage[i]
   # # Reforme #1: Prime a l'emploi
-  # if (exists("Lhat") == TRUE) { #  Lhat n'est pas une variable existante à ce stade, donc on doit tester pour 
-  #   if (Lhat[i]>30*weeks) {
-  #     PrimeEmploi <- (Lhat[i]-(30*weeks))*3 
+  #Inspirée d'une des option analysé par Clavet et al. (2013) Source : https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491
+  # if (exists("inc/wage[i]") == TRUE) { #  inc/wage[i] représente les heures travailler durant l'année de l'individu i 
+  #   if (inc/wage[i]>30*weeks) {
+  #     PrimeEmploi <- (inc/wage[i]-(30*weeks))*3 
   #   } else {
   #     PrimeEmploi <- 0 
   #   }
   # }
 
   # Reforme #2: Revenu minimum garanti
+  # Representation la recommandation 9 du rapport du revenu minimum garanti (2017) Source : https://www.mtess.gouv.qc.ca/grands-dossiers/revenu_min_garanti.asp 
+  # Souces pour le montant du calcul du panier de consommation : 
+      # https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1110006601
+      # https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1110022401 
+      # https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1810000413
   panier <- 36970.44 # panier de consommation pris pour Montreal
 
   if (ps[i] == 1) {
@@ -416,17 +429,17 @@ transferts <- function(inc, i){
     }
   } else if (c[i] == 1) {
     if (age[i] > 1 & age[i] < 11) {
-      rmg <- panier*0.55*1.87 # 55 % du panier pour personne de moins de 65 ans  ajuste pour situtation familiale
+      rmg <- panier*0.55*1.87/2 # 55 % du panier pour personne de moins de 65 ans  ajuste pour situtation familiale, la division par deux est pour faire un estimation individuelle
     } else if (age[i] > 10 ) {
-      rmg <- panier*1.87
+      rmg <- panier*1.87/2 # la division par deux est pour faire un estimation individuelle
     } else {
       rmg <- 0   
     }
   } else if (ce[i] == 1) {
     if (age[i] > 1 & age[i] < 11) {
-      rmg <- panier*0.55*2.48 # 55 % du panier pour personne de moins de 65 ans  ajuste pour situtation familiale
+      rmg <- panier*0.55*2.48/2 # 55 % du panier pour personne de moins de 65 ans  ajuste pour situtation familiale,  la division par deux est pour faire un estimation individuelle
     } else if (age[i] > 10 ) {
-      rmg <- panier*2.48
+      rmg <- panier*2.48/2 # la division par deux est pour faire un estimation individuelle
     } else {
       rmg <- 0   
     }
@@ -501,7 +514,7 @@ itax <- function(inc,i){
 }
 ```
 
-Cette fonction de taxe prend en compte les paliers d'imposition fédéraux (*fed*) et québécois (*prv*), ainsi que les contributions à l'assurance emploi (*aemploi*), au RQAP (*rqap*) et, finalement, au programme d'aide sociale (*asociale*). Notez que la contribution au RRQ (*rrq*) est commentée puique cela dépend de l'hypothèse faite sur la substituabilité intertemporelle des individus. 
+Cette fonction de taxe prend en compte les paliers d'imposition fédéraux (*fed*) et québécois (*prv*), ainsi que les contributions à l'assurance emploi (*aemploi*), au RQAP (*rqap*) et, finalement, au programme d'aide sociale (*asociale*). Notez que la contribution au RRQ (*rrq*) est commentée puisque cela dépend de l'hypothèse faite sur la substituabilité intertemporelle des individus. 
  ***à compléter***
 
 ## Taux marginaux effectifs d'imposition
@@ -674,7 +687,7 @@ nsim <- 10
 Pour calibrer le modèle d'offre de travail, nous allons utiliser les données sur les heures travaillées disponibles dans le *Labour Force Survey*. Comme il y a toujours une variabilité dans les données qui ne peut être captée par le modèle théorique, nous ajoutons des processus aléatoires au modèle spécifié plus haut. Pour ce faire, nous supposons des caractéristiques inobservables des individus qui rendent aléatoire la fonction de préférence pour le loisir:
 
 $$\hat{\alpha_{1i}} = \alpha_{1i}+e^{v_i}$$
-où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance 0.01. La transformation $e^{v_i}$ empêche d'avoir une valeur négayive de $\hat{\alpha}_{1i}$
+où *v* est un terme aléatoire normalement distribué (i.i.d) de moyenne zéro et variance 0.01. La transformation $e^{v_i}$ empêche d'avoir une valeur négative de $\hat{\alpha}_{1i}$
 
 La matrice *erreurA* pour le coefficient $\hat{\alpha_{1i}}$ contient un terme d'erreur pour chaque individu à chaque simulation et est construite par le code suivant:
 
