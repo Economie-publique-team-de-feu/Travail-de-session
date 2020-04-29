@@ -452,7 +452,10 @@ transferts <- function(inc, i){
   } else if (reforme == 1) {
     transferts <- TPS_TVH + PrimeTravail + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite #+ PrimeEmploi
   } else if (reforme == 2) {
-    transferts <- rmg #+ PrimeEmploi
+    transferts <- rmg
+  }
+  } else if (reforme == 3 ) {
+      transferts <- rmg #+ PrimeEmploi
   }
   return(transferts)
 }
