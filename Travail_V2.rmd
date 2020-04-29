@@ -36,7 +36,7 @@ Comme mentionné, les effets de ces réformes seront comparés sur la base de l'
 ```{r}
 library(readr) # package pour lire les .csv
 library(compiler) # package pour le Just-in-time compilation
-library(DescTools) # Package pour le coefficient de Gini
+# library(DescTools) # Package pour le coefficient de Gini
 enableJIT(3) # Option du package compiler
 set.seed(123) # Pour répliquer les résultats
 
@@ -225,7 +225,11 @@ Nous allons utiliser les taux de taxe et paliers suivants:
   f5 <- 214368
   
 ```
+```{r}
+asc <- 1
+weeks <- 50 #nombre d'heures par année
 
+```
 ## Transferts
 La liste des principaux transferts fédéraux et provinciaux est tirée de l'étude «TAUX MARGINAUX EFFECTIFS D’IMPOSITION : UNE COMPARAISON QUÉBEC-ONTARIO » de Blancquaert, Clavet, Duclos, Fortin et Marchand (2017). 
 La plupart des transferts dépendent du type de ménage. Pour les ménages avec enfants, nous avons supposé un nombre de 1 enfant par ménage. Comme le LFS est une enquête sur les individus et non sur les ménages, les transferts destinés à des couples ont été divisés par deux de ne pas distribuer en double les montants. Les transferts initiaux sont activés lorsque *reforme = 0*. 
@@ -238,13 +242,15 @@ Les abréviations suivantes ont été utilisées :
 
 ```{r}
 #la variable reforme indique quel scenario utiliser. reforme = 0 est le scenario de base
-reforme <- 0
+reforme <- 3
 
 transferts <- function(inc, i){
   
   #Credit TPS-TVH
   #sources des donnees :  https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/credit-impot-tps-tvh/
+  
   TPS_TVH <- 296 # montant de base
+  
   if (c[i] == 1 | ce[i] == 1 | fm[i] == 1) { 
     TPS_TVH <- TPS_TVH + 296 # montant si personne a charge ou monoparental
     if (ce[i] == 1) {
@@ -268,7 +274,7 @@ transferts <- function(inc, i){
   # Sources des donnees : https://www.revenuquebec.ca/fr/citoyens/credits-dimpot/credits-dimpot-relatifs-a-la-prime-au-travail/
   # Bonifie le revenu de travail d'un % à partir d'un seuil, puis diminue de 10% à partir d'un second seuil 
   if (ps[i] == 1){
-    if (inc > 2400 & inc < 19456){  # celibataire
+    if (inc > 2400 & inc < 19456) {  # celibataire
       PrimeTravail <- min(874, 0.105*(inc-2400)) - max(0, 0.1*(inc-10720))
     } else {
       PrimeTravail <- 0
@@ -394,16 +400,15 @@ transferts <- function(inc, i){
     CreditSolidarite <- CreditSolidarite / 2
   }
   
-## Cette partie du code ne fonctionne pas. Lhat n'est pas un vecteur, c'est une fonction Lhat[i] n'existe donc pas -> Lhat[i] remplacer par inc/wage[i]
-  # # Reforme #1: Prime a l'emploi
-  #Inspirée d'une des option analysé par Clavet et al. (2013) Source : https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491
-  # if (exists("inc/wage[i]") == TRUE) { #  inc/wage[i] représente les heures travailler durant l'année de l'individu i 
-  #   if (inc/wage[i]>30*weeks) {
-  #     PrimeEmploi <- (inc/wage[i]-(30*weeks))*3 
-  #   } else {
-  #     PrimeEmploi <- 0 
-  #   }
-  # }
+
+  # Reforme #1: Prime a l'emploi
+  # Inspirée d'une des option analysé par Clavet et al. (2013) Source : https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491
+  if (inc / wage[i]>30*weeks) {
+    PrimeEmploi <- (inc/wage[i]-(30*weeks))*3 
+  } else {
+    PrimeEmploi <- 0 
+  }
+  
 
   # Reforme #2: Revenu minimum garanti
   # Representation la recommandation 9 du rapport du revenu minimum garanti (2017) Source : https://www.mtess.gouv.qc.ca/grands-dossiers/revenu_min_garanti.asp 
@@ -411,49 +416,47 @@ transferts <- function(inc, i){
       # https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1110006601
       # https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1110022401 
       # https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1810000413
+      
   panier <- 36970.44 # panier de consommation pris pour Montreal
-
-  if (ps[i] == 1) {
-    if (age[i] > 1 & age[i] < 11) {
-      rmg <- panier*0.55 # 55 % du panier pour personne de moins de 65 ans
-    }
-  } else if (fm[i] == 1) {
-    if (age[i] > 1 & age[i] < 11) {
-      rmg <- panier*0.55*1.45 # 55 % du panier pour personne de moins de 65 ans ajuste pour situtation familiale
-    }
-  } else if (c[i] == 1) {
-    if (age[i] > 1 & age[i] < 11) {
-      rmg <- panier*0.55*1.87/2 # 55 % du panier pour personne de moins de 65 ans  ajuste pour situtation familiale, la division par deux est pour faire un estimation individuelle
-    }
-  } else if (ce[i] == 1) {
-    if (age[i] > 1 & age[i] < 11) {
-      rmg <- panier*0.55*2.48/2 # 55 % du panier pour personne de moins de 65 ans  ajuste pour situtation familiale,  la division par deux est pour faire un estimation individuelle
-    }
-  } else if (age[i] > 10 ) {
-      rmg <- panier #100% du panier pour les personnes de 65 ans et plus où nous prenons pour compte qu'ils n'ont plus d'enfant à charge
+  
+  if (age[i] > 1 & age[i] < 11) {
+    rmg <- panier * 0.55 # 55 % du panier pour personne de moins de 65 ans 
+  } else if (age[i] > 10) {
+    rmg <- panier
   } else {
-      rmg <- 0   
-    }
+    rmg <- 0 # 0 si moins de 20 ans
+  }
+    
+  if (ps[i] == 1) {
+    rmg <- rmg
+  } else if (fm[i] == 1) {
+     rmg <- rmg*1.45 # ajustement pour situtation familiale
+  } else if (c[i] == 1) {
+     rmg <- rmg*1.87/2 # ajustement pour situtation familiale
+  } else if (ce[i] == 1) {
+     rmg <- rmg*2.48/2 # ajustement pour situtation familialee
   }
 
   if (reforme == 0) {
-    transferts <- TPS_TVH + PrimeTravail + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite
+    assign("asc", 1, envir = .GlobalEnv)
+    transferts <- TPS_TVH + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite + PrimeTravail
   } else if (reforme == 1) {
-    transferts <- TPS_TVH + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite #+ PrimeEmploi
+    assign("asc", 1, envir = .GlobalEnv)
+    transferts <- TPS_TVH + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite + PrimeEmploi
   } else if (reforme == 2) {
+    assign("asc", 0, envir = .GlobalEnv)
     transferts <- rmg
-  }
   } else if (reforme == 3 ) {
-      transferts <- rmg #+ PrimeEmploi
+    assign("asc", 0, envir = .GlobalEnv)
+    transferts <- rmg + PrimeEmploi
   }
+
   return(transferts)
 }
 ```
 
 ## Calcul du revenu net
 ```{r}
-# posons l'aide sociale à 1 (0 si elle n'existe pas)
-as<-1
 
 itax <- function(inc,i){
   # Calcule les impots sur le revenu
@@ -503,11 +506,10 @@ itax <- function(inc,i){
   rrq <- 0 #max(min(58700,inc)-3500,0)*0.057
   rqap <- min(78500,inc)*0.00494
   
-  asociale <- max(690*12 - max(inc-200*12,0),0)*as
+  asociale <- max(690*12 - max(inc-200*12,0),0)*as.numeric(asc)
   tax <-  prv + fed + aemploi + rrq + rqap - asociale -transferts(inc,i)
   
-  return(c(tax,prv,fed,aemploi,rrq,rqap,asociale, transferts(inc,i)
-           ))
+  return(c(tax,prv,fed,aemploi,rrq,rqap,asociale, transferts(inc,i)))
 }
 ```
 
@@ -526,7 +528,7 @@ tme <- function(incr,imax,i){
   tax2 <- c(tax[2:(length(tax))],0) # decale le taux de taxe
   deltatax <- tax2-tax # taxe marginale
   tm <- deltatax/incr # taux marginal effectif
-  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI')
+  plot(incm[1:length(incm)-1],tm[1:length(incm)-1],xlab='Revenu annuel', ylab='TMEI', ylim=c(0, 1))
   return(list(incm[1:length(incm)-1],tm[1:length(incm)-1]))
 }
 
@@ -639,8 +641,6 @@ hist(lfsqc$ATOTHRS,
 ## Effet des taxes
 
 ```{r}
-weeks <- 50
-#nombre d'heures par année
 rhours <- as.numeric(lfsqc$ATOTHRS)*weeks
 
 
