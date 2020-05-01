@@ -836,8 +836,10 @@ distrhours(thetastart)
 thetatry <-c(  41.607398,  40.045893, -1.648033, -103.284407, 26.623463,  56.483046,
              -10.824611,   63.101435, 124.403127, -28.121906, 12.512040 ,  24.094047)
 #Ajustement a la main des parametres pour reduire l'ecart entre les moments
-thetatry[10]<- thetatry[10]+150
-thetatry[11]<-thetatry[11]+30
+thetatry[5] <- thetatry[5]-6
+thetatry[10]<- thetatry[10]+130
+thetatry[11]<-thetatry[11]+20
+thetatry[12] <- thetatry[12]-12
 
 #gmm finaux
 distrhours(thetatry)
