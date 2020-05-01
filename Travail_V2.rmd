@@ -33,7 +33,7 @@ Comme mentionné, les effets de ces réformes seront comparés sur la base de l'
 
 # 0. Chargement des librairies
 
-```{r}
+```{r echo = T, results="hide"}
 library(readr) # package pour lire les .csv
 library(compiler) # package pour le Just-in-time compilation
 library(DescTools) # Package pour le coefficient de Gini
@@ -669,14 +669,14 @@ Les variables globales sont définies comme suit:
 
 * *nincr* est le nombre d'incréments (le nombre de sauts) possibles. 
 
-* *nsim* est le nombre de simulations que nous allons faire pour ajouter des termes d'erreurs dans le modèle. Nous l'avons fixé à 100. Un nombre trop faible induit des risques que les erreurs induisent trop de *bruit* dans les données et un nombre trop élevé allonge la durée de compilation du code. Nous suggérons de le poser à 10 pour une compilation plus rapide.   
+* *nsim* est le nombre de simulations que nous allons faire pour ajouter des termes d'erreurs dans le modèle. Nous l'avons fixé à 10. Un nombre trop faible induit des risques que les erreurs induisent trop de *bruit* dans les données et un nombre trop élevé allonge la durée de compilation du code. Nous suggérons de le poser à 1 pour une compilation plus rapide.   
 
 ```{r}
 Lmax <- 4250
 weeks <- 50
 lincr <- 250
 nincr <- Lmax/lincr +1
-nsim <- 100
+nsim <- 10
 ```
 
 
@@ -953,7 +953,7 @@ hist(stats1[,5], main = "Distribution des revenus nets")
 
 Calculons le coefficient de Gini pour la réforme 1: 
 
-```{r eval=FALSE, echo=TRUE}
+```{r}
 Gini1 <-Gini(x=stats1[,5], n=wght)
 Gini1
 ```
@@ -999,7 +999,7 @@ hist(stats2[,5], main = "Distribution des revenus nets")
 
 Calculons le coefficient de Gini pour la réforme 1: 
 
-```{r eval=FALSE, echo=TRUE}
+```{r}
 Gini2 <-Gini(x=stats2[,5], n=wght)
 Gini2
 ```
@@ -1016,7 +1016,7 @@ reforme <- 3
 
 Pour un couple avec enfant (modifier le 3e terme *i* pour obtenir les TMEI des autres types de ménages):
 
-```{r }
+```{r}
 outtme <- tme(100,250000,1)
 ```
 
@@ -1046,7 +1046,7 @@ hist(stats3[,5], main = "Distribution des revenus nets")
 
 Calculons le coefficient de Gini pour la réforme 3: 
 
-```{r eval=FALSE, echo=TRUE}
+```{r}
 Gini3 <-Gini(x=stats3[,5], n=wght)
 Gini3
 ```
@@ -1074,7 +1074,7 @@ hist(stats3[,1], col="seagreen", lty="blank")
 
 Voici l'effet sur les revenus nets:
 
-```{r fig3, fig.width = 7, fig.height=8}
+```{r fig4, fig.width = 7, fig.height=8}
 # essai 1 graphiques en violon
 vioplot(stats0[,5],
         stats1[,5],
