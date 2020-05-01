@@ -190,7 +190,7 @@ Dans cet exemple, les individus ne peuvent pas travailler 0 heures et n'avoir au
 
 
 
-# 2. Règles fiscales québécoises
+# 2. Règles fiscales appliquées
 
 ## Paliers d'imposition provinciaux et fédéraux
 
@@ -228,23 +228,31 @@ Nous allons utiliser les taux de taxe et paliers suivants:
   f5 <- 214368
   
 ```
+Pour continuer, nous posons que l'aide sociale (*asc*) existe (elle est égale à 1), et qu'il y a 50 semaines de travail dans une année.
+
 ```{r}
 asc <- 1
 weeks <- 50 #nombre d'heures par année
 
 ```
+
 ## Transferts
-La liste des principaux transferts fédéraux et provinciaux est tirée de l'étude «TAUX MARGINAUX EFFECTIFS D’IMPOSITION : UNE COMPARAISON QUÉBEC-ONTARIO » de Blancquaert, Clavet, Duclos, Fortin et Marchand (2017). 
-La plupart des transferts dépendent du type de ménage. Pour les ménages avec enfants, nous avons supposé un nombre de 1 enfant par ménage. Comme le LFS est une enquête sur les individus et non sur les ménages, les transferts destinés à des couples ont été divisés par deux de ne pas distribuer en double les montants. Les transferts initiaux sont activés lorsque *reforme = 0*. 
+
+La liste des principaux transferts fédéraux et provinciaux est tirée de l’étude «TAUX MARGINAUX EFFECTIFS D’IMPOSITION : UNE COMPARAISON QUÉBEC-ONTARIO » de Blancquaert, Clavet, Duclos, Fortin et Marchand (2017). Nous supposons l’impact d’utilisation des transferts énumérés dans cet article et négligeons l’impact des autres crédits d’impôt disponibles plus spécifiques aux différentes situations des ménages, dont nous jugeons l’impact moindre pour la complexification que leur analyse apporte. La plupart des transferts dépendent du type de ménage. Pour les ménages avec enfants, nous avons supposé un nombre de 1 enfant par ménage en raison du faible taux de natalité. Comme le LFS est une enquête sur les individus et non sur les ménages, les transferts destinés à des couples ont été divisés par deux afin de ne pas distribuer en double les montants. Les transferts initiaux sont activés lorsque reforme = 0.
 
 Les abréviations suivantes ont été utilisées : 
+
 * *ps* : personne seule
+
 * *c* : couple sans enfants
+
 * *fm* : famille monoparentale
+
 * *ce* : couple avec enfants
 
 ```{r}
 #la variable reforme indique quel scenario utiliser. reforme = 0 est le scenario de base
+
 reforme <- 0
 
 transferts <- function(inc, i){
@@ -263,17 +271,19 @@ transferts <- function(inc, i){
   if (ps[i] == 1) {
     TPS_TVH <- TPS_TVH + min(155, max(0, 0.02*(inc-9590))) # montant pour celibataire
   } else if (fm[i] == 1) {
-    TPS_TVH <- TPS_TVH + 155 # montant si monoparental
+    TPS_TVH <- TPS_TVH + 155 # montant supplementaire celibataire applicable au parent monoparental
   }
   if (inc > 38507) {
-    TPS_TVH <- max(0, TPS_TVH - 0.05*(inc-38507)) # deduction pour haut revenu 
+    TPS_TVH <- max(0, TPS_TVH - 0.05*(inc-38507))  # reduction de 5% du credit a partir d'un revenu superieur a 38507
   } 
   if (c[i] == 1 | ce[i] == 1 ) { 
-    TPS_TVH <- TPS_TVH / 2 # montant final divise par 2 si en couple 
+    TPS_TVH <- TPS_TVH / 2  # montant final divise par 2 si en couple car une seule personne par couple peut avoir le transfert
   }
   
   
-  #Prime au travail maximal
+  #Prime au travail 
+  # Par simplification, nous utilisons les parametres de base et n'ajoutons pas la prime pour personne handicapee.
+  
   # Sources des donnees : https://www.revenuquebec.ca/fr/citoyens/credits-dimpot/credits-dimpot-relatifs-a-la-prime-au-travail/
   # Bonifie le revenu de travail d'un % à partir d'un seuil, puis diminue de 10% à partir d'un second seuil 
   if (ps[i] == 1){
@@ -306,7 +316,7 @@ transferts <- function(inc, i){
   #Source des donnees : https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-canadienne-pour-les-travailleurs/ 
   if (ps[i] == 1){
     if (inc > 2400 & inc < 23458){ # celibataire
-      AllocationTravailleur <- min(2280, 0.274*(inc-2400)) - max(0, 0.2*(inc-12060))
+      AllocationTravailleur <- min(2280, 0.274*(inc-2400)) - max(0, 0.2*(inc-12060)) # L'allocation diminue de 20% apres un seuil de revenu.
     } else {
       AllocationTravailleur <- 0
     }
@@ -339,10 +349,10 @@ transferts <- function(inc, i){
       ACE <- 5708 # on suppose qu'il n'y a qu'un seul enfant
     }
     if (inc > 31711) { # premier seul de reduction (marginal)
-      ACE <- ACE - 0.07*min(36997, inc - 31711) # 7% pour revenu entre 31711 et 68708
+      ACE <- ACE - 0.07*min(36997, inc - 31711) #  #Diminution de 7% pour revenu entre 31711 et 68708
     }
-    if (inc > 68708) { # deuxième seuil
-      ACE <- ACE - 0.032*(inc - 68708) # 3,2% pour revenu entre 31711 et 68708
+    if (inc > 68708) {  # Deuxième seuil de réduction
+      ACE <- ACE - 0.032*(inc - 68708) # Diminution de 3,2% pour revenu superieur a 68708
     }
     ACE <- max(ACE, 0) # on s'assure que la valeur n'est pas negative
     if (ce[i] == 1) {
@@ -355,6 +365,8 @@ transferts <- function(inc, i){
   
   #Allocation famille
   # Source des donnees : https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-famille-soutien-enfants/
+  # Utilisation des données pour l'annee 2020
+  # Par simplification du modele, nous avons decide un maximum de 1 enfant par famille sans handicape ou soins exceptionnels.
   if (fm[i] == 1) {
     AllocationFamille <- 2515 + 882 # prime de base plus prime pour monoparental
     if (inc > 36256) {
@@ -372,6 +384,8 @@ transferts <- function(inc, i){
   }
   
   #Credit solidarite
+  # Par fin de simplification, les composantes relatives aux villages nordiques on ete ignores. De plus, un seul scenario de base a ete effectue par type de menage.
+  
   # Sources des donnees : http://www4.gouv.qc.ca/FR/Portail/Citoyens/Evenements/acheter-renover-maison/Pages/credit-impot-pour-solidarite.aspx  et https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/credit-impot-solidarite/ 
   if (ps[i] == 1) {
     CreditSolidarite <- 297+141+(577) # montant de base
@@ -405,7 +419,8 @@ transferts <- function(inc, i){
   
 
   # Reforme #1: Prime a l'emploi
-  # Inspirée d'une des option analysé par Clavet et al. (2013) Source : https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491
+# Inspirée d'une des options analysées par Clavet et al. (2013) Source : https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491
+  
   if ((inc / wage[i])>30*weeks) {
     PrimeEmploi <- (inc/wage[i]-(30*weeks))*3 
   } else {
@@ -420,12 +435,12 @@ transferts <- function(inc, i){
       # https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1110022401 
       # https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1810000413
       
-  panier <- 36970.44 # panier de consommation pris pour Montreal
+  panier <- 36970.44 # panier de consommation pris pour Montreal car le plus eleve de la province
   
   if (age[i] > 1 & age[i] < 11) {
-    rmg <- panier * 0.55 # 55 % du panier pour personne de moins de 65 ans 
+    rmg <- panier * 0.55 # 55 % du panier pour personne entre 20 et 65 ans 
   } else if (age[i] > 10) {
-    rmg <- panier
+    rmg <- panier  # 100% de la valeur du panier de consommation pour une personne de 65 ans et plus
   } else {
     rmg <- 0 # 0 si moins de 20 ans
   }
@@ -433,12 +448,15 @@ transferts <- function(inc, i){
   if (ps[i] == 1) {
     rmg <- rmg
   } else if (fm[i] == 1) {
-     rmg <- rmg*1.45 # ajustement pour situtation familiale
+     rmg <- rmg*1.45  # ajustement pour situation familiale, estimations des depenses d'une famille monoparentale a 145% des depenses d'une personne seule
+
   } else if (c[i] == 1) {
-     rmg <- rmg*1.87/2 # ajustement pour situtation familiale
+     rmg <- rmg*1.87/2  # ajustement pour situation familiale, estimation des depenses d'un couple a 187% des depenses d'une personne seule
+     
   } else if (ce[i] == 1) {
-     rmg <- rmg*2.48/2 # ajustement pour situtation familialee
+     rmg <- rmg*2.48/2  # ajustement pour situation familiale, estimation des depenses d'un couple avec enfant a 248% des depenses d'une personne seule
   }
+#divise par deux dans le cas des couples (avec et sans enfant) pour avoir le montant obtenu par chaque personne
 
   if (reforme == 0) {
     assign("asc", 1, envir = .GlobalEnv)
@@ -459,6 +477,8 @@ transferts <- function(inc, i){
 ```
 
 ## Calcul du revenu net
+
+L’impôt est calculé selon la combinaison des paliers d'imposition fédéraux et provinciaux. Nous calculons le montant d’impôt prélevé sur le revenu avec la variation subie entre chaque palier d’imposition. Dans un but de simplification, nous ignorons la réforme de la CAQ concernant la taxation des heures supplémentaires travaillées.
 ```{r}
 
 itax <- function(inc,i){
@@ -570,7 +590,7 @@ Voici une table détaillant les variables extraites:
 
 
 ## Chargement des données
-Les données contiennent un total de 17865 observations. Nous retirons les étudiants car leur offre de travail ne serait pas compatible avec le modèle théorique postulé. Pour ce faire, nous leur assignons une valeur manquante dans la colonne *SCHOOLN* afin que ces individus soient supprimés par la commande *complete.cases*. Cette dernière enlève les valeurs manquantes. En enlevant ces observations qui ont des valeurs manquantes, nous prenons soin de conserver leurs poids afin de repondérer les autres individus. Pour les tests, nous avons tiré un échantillon de 1000 individus. L'analyse finale a été effectuée sur l'ensemble des observations. Dans les deux cas, nous avons également noté *n* le nombre d'individus dans l'échantillon courant. 
+Les données contiennent un total de 17865 observations. Nous retirons les étudiants car leur offre de travail ne serait pas compatible avec le modèle théorique postulé. Pour ce faire, nous leur assignons une valeur manquante dans la colonne `SCHOOLN` afin que ces individus soient supprimés par la commande `complete.cases`. Cette dernière enlève les valeurs manquantes. Il y a 1116 ménages dans les données pour lesquels l'âge des enfants est manquant, ce qui devient plus problématique pour l'allocation canadienne pour enfants, qui varie selon l'âge des enfants. Dans un objectif de simplification, ces données ont été supprimées de la base de données initiale. En enlevant ces observations qui ont des valeurs manquantes, nous prenons soin de conserver leurs poids afin de repondérer les autres individus. Pour les tests, nous avons tiré un échantillon de 1000 individus. L’analyse finale a été effectuée sur l’ensemble des observations. Dans les deux cas, nous avons également noté n le nombre d’individus dans l’échantillon courant.
 
 ```{r}
 lfs <- read_csv("./LFS-71M0001-E-2020-February_F1.csv", col_types = cols()) # importe les données du LFS, Février 2020
@@ -943,8 +963,11 @@ print(Gini0)
 Notre coefficient de Gini pondéré de `r Gini0` est beaucoup plus faible (plus égalitaire) que celui qui est calculé par Statistique Canada, qui était de 0.284 en 2016 (http://qceco.ca/n/3739). Sans avoir à réfléter parfaitement la réalité québécoise, il nous permettra de comparer les réformes au scénario de base (*reforme=0*). 
 
 # 5. Réforme #1: Prime à l'emploi
-La prime à l'emploi est de 3$/h pour tout individu ayant trouver un emploi et travaillant au moins 30h par semaine. La prime commence à s'appliquer a 30h de travail durant la semaine. Encore une fois les détails de la réforme sont codés dans la fonction `transferts`. Elle assume que les tranferts habituels sont maintenus, à l'exception de la prime pour les travailleurs (basée sur le salaire annuel) qui est remplacée par la prime au travail (subvention de 3\$ de l'heure). Ce type d'aide au travailleur aura pour effet, théoriquement, d'encourager davantage la participation au travail des individus ayant les plus faibles salaires horaires. 
 
+On a donc une valeur de $\theta$ qui permet de répliquer les moments observés dans les données et de donner quelques statistiques descriptives de l'économie simulée. On peut donc maintenant commencer à faire des analyses de réformes.
+
+La prime à l’emploi est de 3$/h pour tout individu ayant trouvé un emploi et travaillant au moins 30h par semaine. La prime commence à s’appliquer à 30h de travail durant la semaine. Elle est prise de l’article de Clavet et al. (2013). De cet article, les auteurs font l’hypothèse que la stimulation de l’emploi est la meilleure façon de sortir les agents de la pauvreté matérielle. Ce type d’aide aux travailleurs aura pour effet, théoriquement, d’encourager davantage la participation au travail des individus ayant les plus faibles salaires horaires.
+Encore une fois les détails de la réforme sont codés dans la fonction `transferts`. Elle assume que les transferts habituels sont maintenus, à l’exception de la prime pour les travailleurs (basée sur le salaire annuel) qui est remplacée par la prime au travail (subvention de 3$ de l’heure). 
 ```{r}
 reforme <- 1
 ```
@@ -1001,10 +1024,8 @@ Gini1
 
 ## Nouvelles règles fiscales
 
-
-On a donc une valeur de $\theta$ qui permet de répliquer les moments observés dans les données et de donner quelques statistiques descriptives de l'économie simulée. On peut donc maintenant commencer à faire des analyses de réformes.
-
-Pour les personnes qui ont 20 ans et plus, le revenu minimum garanti correspond a 55% du panier de consommation annuel, évalué a 36970.44 dollars en 2020 pour Montreal (le plus eleve de la province). Le panier de consommation est evalue en dollars constants de 2018. Pour les personnes de 65 ans et plus, le revenu minimum garanti correspond a 100% du panier de consommation de 36970.44 dollars. Les règles fiscales de l'attribution des paniers sont déjà codés dans la fonction `transferts`. Elles consistent à attrubuer universellement un revenu minimal garanti correspondant à un pourcentage du panier de consommation selon le type de ménage et l'âge. Les autres transferts ont tous été retirés, incluant l'aide sociale.
+La réforme fiscale via le revenu minimum garanti est inspirée de celle proposée par Boccanfuso, Cousineau et Fonseca (2020). Inversement à l'aide sociale, son caractère universel ne crée pas de mur pour les individus qui en bénéficient et qui désirent travailler. 
+Pour les personnes qui ont 20 ans et plus, le revenu minimum garanti correspond a 55% du panier de consommation annuel, évalué à 36970.44 dollars en 2020 pour Montréal (le plus élevé de la province). Le panier de consommation est évalué en dollars constants de 2018 (Données du Tableau 11-10-0066-01 de Statistiques Canada, pondéré via un ratio calculé à l’aide des données du tableau 11-10-0224-01 de Statistiques Canada). Pour les personnes de 65 ans et plus, le revenu minimum garanti correspond à 100% du panier de consommation de 36970.44 dollars. Les règles fiscales de l’attribution des paniers sont déjà codées dans la fonction transferts. Elles consistent à attribuer universellement un revenu minimum garanti correspondant à un pourcentage du panier de consommation selon le type de ménage et l’âge. Les autres transferts ont tous été retirés, incluant l’aide sociale.
 
 ````{r}
 reforme <- 2
@@ -1168,7 +1189,7 @@ Variations de l'indice de Gini, pondéré pour les poids populationnels
 listeGini <- c(Gini0, Gini1, Gini2, Gini3)
 barplot(listeGini,
         names.arg=c("De base",  "PT", "RMG","RMG et PT"),
-        col=c("magenta4", "dark turquoise", "seagreen", "blue2"), ylim = c(1, 0.25),border=NA)
+        col=c("magenta4", "dark turquoise", "seagreen", "blue2"), ylim = c(0.1, 0.25),border=NA)
 ```
 
 ## Conclusions
@@ -1194,6 +1215,8 @@ Chaire en fiscalité et en finances publiques, Crédit d'impôt pour solidarité
 
 Chaire en fiscalité et en finances publiques, Allocation canadienne pour les travailleurs, École de gestion de l'Université de Sherbrooke, 2020, article accessible à l'adresse < https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-canadienne-pour-les-travailleurs/ >, consulté le 8 avril 2020
 
+Cirano, Évolution du coefficient de Gini, revenu disponible ajusté, Le Québec économique, 2020, données accessible à l’adresse <https://qe.cirano.qc.ca/theme/revenus-inegalites/inegalites/graphique-evolution-coefficient-gini-revenu-disponible-ajuste >, consulté le 28 mars 2020
+
 Gouvernement du Canada, Les taux d'imposition canadiens pour les particuliers - années courante et années passées, 2020, données accessibles à l'adresse < https://www.canada.ca/fr/agence-revenu/services/impot/particuliers/foire-questions-particuliers/taux-imposition-canadiens-particuliers-annee-courante-annees-passees.html#federal >, consulté le 8 avril 2020 
 
 Gouvernement du Québec, Programme d'aide sociale, Services Québec - Citoyens, s'installer au Québec, Ministère du travail, de l'emploi et de la solidarité sociale, données accessibles à l'adresse < http://www4.gouv.qc.ca/FR/Portail/Citoyens/Evenements/immigrer-au-quebec/Pages/programme-aide-sociale.aspx >, consulté le 8 avril 2020 
@@ -1205,6 +1228,8 @@ NRG CPA inc., Déductions à la source et charges sociales, 2020, données dispo
 Revenu Québec, Taux d'imposition, 2020, données accessibles à l'adresse < https://www.revenuquebec.ca/fr/citoyens/declaration-de-revenus/produire-votre-declaration-de-revenus/taux-dimposition/ >, consulté le 8 avril 2020 
 
 Revenu Québec, Crédits d'impôt relatifs à la prime au travail, 2020, données accessibles à l'adresse < https://www.revenuquebec.ca/fr/citoyens/credits-dimpot/credits-dimpot-relatifs-a-la-prime-au-travail/ >, consulté le 8 avril 2020 
+
+Statistique Canada, Labour Force Survey, February 2020 [Canada], Labour Statistic division, Canada, 2020, les données sont accessible par l’adresse <http://odesi2.scholarsportal.info.acces.bibl.ulaval.ca/webview/ >,  consulté le 25 mars 2020
 
 Statistique Canada, Tableau 11-10-0066-01, Seuil de la Mesure du panier de consommation (MPC) pour famille de référence selon la région de la Mesure du panier de consommation, la composante et l'année de basei, données accessibles à l'adresse < https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1110006601 >, consulté le 8 avril 2020 
 
