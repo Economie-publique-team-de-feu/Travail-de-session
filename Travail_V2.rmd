@@ -38,6 +38,7 @@ library(readr) # package pour lire les .csv
 library(compiler) # package pour le Just-in-time compilation
 library(DescTools) # Package pour le coefficient de Gini
 library(vioplot) # Pour faire des beaux graphiques
+library(knitr) # Pour rendre des beaux html
 enableJIT(3) # Option du package compiler
 set.seed(123) # Pour répliquer les résultats
 
@@ -148,7 +149,7 @@ Loptimal <-function(i,incr, theta){
 
 Voici un jeu de données fictives (10 observations) sur lesquelles nous avons testé les fonctions (sans taxes ni transferts)
 
-```{r}
+```{r fig6, fig.height=4, fig.width=5}
 #Fonction de taxation temporaire: aucune taxe
 itax<- function(inc,i){
   return(0)
@@ -179,7 +180,8 @@ for (i in 1:n) {
 hist(Lopt, 
      main="Heures optimales simulées", 
      xlab="Heures de travail annuelles", 
-     xlim=c(0,2000),
+     ylab="Fréquences", 
+     xlim=c(0,4000),
      las=1, 
      breaks=10)
 ```
@@ -243,7 +245,7 @@ Les abréviations suivantes ont été utilisées :
 
 ```{r}
 #la variable reforme indique quel scenario utiliser. reforme = 0 est le scenario de base
-reforme <- 3
+reforme <- 0
 
 transferts <- function(inc, i){
   
@@ -404,7 +406,7 @@ transferts <- function(inc, i){
 
   # Reforme #1: Prime a l'emploi
   # Inspirée d'une des option analysé par Clavet et al. (2013) Source : https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491
-  if (inc / wage[i]>30*weeks) {
+  if ((inc / wage[i])>30*weeks) {
     PrimeEmploi <- (inc/wage[i]-(30*weeks))*3 
   } else {
     PrimeEmploi <- 0 
@@ -441,10 +443,10 @@ transferts <- function(inc, i){
   if (reforme == 0) {
     assign("asc", 1, envir = .GlobalEnv)
     transferts <- TPS_TVH + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite + PrimeTravail
-  } else if (reforme == 2) {
+  } else if (reforme == 1) {
     assign("asc", 1, envir = .GlobalEnv)
     transferts <- TPS_TVH + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite + PrimeEmploi
-  } else if (reforme == 1) {
+  } else if (reforme == 2) {
     assign("asc", 0, envir = .GlobalEnv)
     transferts <- rmg
   } else if (reforme == 3 ) {
@@ -521,7 +523,7 @@ Cette fonction de taxe prend en compte les paliers d'imposition fédéraux (*fed
 
 On peut directement voir l'impact de la fonction de taxe, sans hypothèses sur le comportement des individus, en regardant les taux marginaux effectifs d'imposition (TMEI). Le code suivant crée un graphique pour des incréments salariaux annuels de *incr* jusqu'à un revenu annuel de *imax* \$ pour chacun des 4 types de ménages (personne seule (ps), couple (c), famille monoparentale (fm) et couple avec enfants (ce)).
 
-```{r}
+```{r fig11}
 tme <- function(incr,imax,i){
   # calcule les taux marginaux effectifs d'imposition par increments de "incr"$, jusqu'a imax$
   incm <- seq(0,imax,by=incr) # vecteur des niveaux de revenus
@@ -576,12 +578,16 @@ lfsqc <- lfs[lfs$PROV==24,] # Garde uniquement le Québec
 rm(lfs) # Supprime la base initiale de la mémoire
 lfsqc <- lfsqc[,c("AGE_12","SEX","EDUC","ATOTHRS","HRLYEARN","EFAMTYPE","SCHOOLN","AGYOWNK","FINALWT")]  # Garde seulement certaines variables
 
+# Si menage n'a pas d'enfant, alors l'age du plus jeune est redéfini à zéro au lieu d'être manquante 
+# Ceci est fait afin de ne pas jetter ces observations 
+lfsqc$AGYOWNK <- ifelse(lfsqc$EFAMTYPE %in% c(1,15,17,18,2,4,5,7,8,10,11,13) & is.na(lfsqc$AGYOWNK), 0, lfsqc$AGYOWNK)
+
 # Enlever les étudiants
 lfsqc$SCHOOLN[lfsqc$SCHOOLN != 1] <- NA
 n0 <- nrow(lfsqc) # Garde le nombre d'observations initiales
 missingweight <- c(lfsqc[!complete.cases(lfsqc),"FINALWT"])[[1]] #Garde les poids des individus qui seront enlevés
 lfsqc <- lfsqc[complete.cases(lfsqc), ] # Enlève les observations avec des variables manquantes
-#lfsqc <- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # Sous-échantillonage pour les tests (commenté pour l'analyse finale, décommenter pour compilation plus rapide)
+lfsqc <- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # Sous-échantillonage pour les tests (commenté pour l'analyse finale, décommenter pour compilation plus rapide)
 n <- nrow(lfsqc) # Nombre d'individus dans la base
 
 # Ajustement des poids des individus
@@ -624,34 +630,44 @@ Voici un résumé des caractéristiques démographiques de l'échantillon :
 ```{r}
 # résumé des variables démographiques
 
-summary(Xmat) 
+kable(summary(Xmat) )
 ```
 
 Voici la distribution des heures travaillées et des salaires horaires:
 
-```{r}
+```{r fig15, fig.width=8, fig.height=4}
+par(mfrow=c(1,2))
 hist(wage,
     main="Distribution des salaires", 
-     xlab="Salaire horaire - Dollars canadiens")
+     xlab="Salaire horaire - Dollars canadiens", ylab = "Fréquence")
 hist(lfsqc$ATOTHRS,
     main="Distribution des heures travaillées", 
-     xlab="Nombre d'heures hebdomadaires")
+     xlab="Nombre d'heures hebdomadaires", ylab = "")
 ```
 
 
 ## Effet des taxes
 
-```{r}
+```{r fig16, fig.width=5, fig.height=3}
 rhours <- as.numeric(lfsqc$ATOTHRS)*weeks
-
+salbrut <- rhours*wage
 
 salnet<- rep(n,0)
 for (j in 1:n) {
   salnet[j] <- Y(j, rhours[j])
 }
-hist(salnet,
-     main="Distribution du salaire net annuel", 
-     xlab="Salaire net annuel ($)")
+
+# Couleurs transparentes pour les graphiques
+bleupale<-rgb(0,0,1,0.5)
+bleumoyen <-rgb(0,1,1,0.5)
+
+hist(salbrut,col=bleupale,
+    main="Distribution du revenu brut et net", 
+     xlab="Revenu annuel ($)", ylab = "Fréquence", ylim = c(0,400))
+hist(salnet, add=TRUE , col=bleumoyen)
+legend("right", legend=c("Revenu brut", "Revenu net"),
+       fill=c(bleupale, bleumoyen), cex=0.8)
+
 ```
 
 
@@ -825,8 +841,8 @@ On peut donc maintenant lancer la calibration. L'objectif de la calibration est 
 #Valeurs     de départ inspirés des paramètres de Clavet, Duclos et Lacroix
 thetastart <- c( 102, -59 ,  8, 0.5 ,  100  ,11,
               1.3, 4 , 0.01  , 5, 2 , 10)
-#gmm de depart
-distrhours(thetastart)
+print ("gmm de depart")
+#distrhours(thetastart)
 
 # #Calibration - ne pas rouler, ca prend 16 h....
 # out <- optim(thetastart, fn=distrhours) # minimise la fonction gmmfct prenant theta comme valeur de départ.
@@ -838,12 +854,12 @@ thetatry <-c(  41.607398,  40.045893, -1.648033, -103.284407, 26.623463,  56.483
              -10.824611,   63.101435, 124.403127, -28.121906, 12.512040 ,  24.094047)
 #Ajustement a la main des parametres pour reduire l'ecart entre les moments
 thetatry[5] <- thetatry[5]-6
-thetatry[10]<- thetatry[10]+130
-thetatry[11]<-thetatry[11]+20
-thetatry[12] <- thetatry[12]-12
+thetatry[10]<- thetatry[10]+160
+thetatry[11]<-thetatry[11]
+thetatry[12] <- thetatry[12]-13
 
-#gmm finaux
-distrhours(thetatry)
+print ("gmm finaux")
+#distrhours(thetatry)
 ```
 
 ## Résultats de la calibration
@@ -851,23 +867,31 @@ distrhours(thetatry)
 On voit la valeur calibrée de theta dans $out\$ par$ et la valeur de la fonction objective dans $out\$ value$. On peut maintenant voir les moments simulés (moyenne sur *nsim* simulations) et les moments réels avec le code suivant:
 
 ```{r }
+print("Paramètres finaux")
 print(thetatry)
+print("moments simulés")
 print(simhours(thetatry))
+print("moments observés")
 print(rmoments)
 ```
 
-On voit donc que la majorité des moments sont bien simulés, sauf que le modèle produit un peu trop de variation dans les heures travaillées et que la proportion des gens ne travaillant pas est un peu plus faible que dans les données observées. Voici la distribution des heures travaillées observées et simulées: 
+On voit donc que la majorité des moments sont bien simulés, sauf que modèle produit un moindre taux de chômage et une plus grande variance des heures travaillées. 
+Voici la distribution des heures travaillées observées et simulées: 
 
 ```{r}
-hist(rhours, main = "Distribution des heures observées")
-#print(max(rhours))
+hist(rhours, main = "Distribution des heures observées",
+     ylab = "Fréquence",
+     xlab = "Heures annuelles")
+
 ```
 
 On voit bien la masse importante juste avant 2000 heures de travail (i.e. 40 heures par semaine pendant 50 semaines), ce qui est intuitivement clair. Le code suivant nous donne un exemple de distribution des heures travaillées données par le modèle.
 
 ```{r}
 hres0<-simwork(thetatry, nsim)
-hist(hres0, main = "Distribution des heures simulées, scénario de base")
+hist(hres0, main = "Distribution des heures simulées, scénario de base",
+     ylab = "Fréquence",
+     xlab = "Heures annuelles")
 ```
 
 ## Résultats du scénario de base 
@@ -893,7 +917,24 @@ makestats <- function(theta){
 }
 stats0 <- makestats(thetatry)
 colnames(stats0) <- c("heures travaillées","utilité","revenu brut","taxes et transferts", "revenu net")
-summary(stats0)
+kable(summary(stats0))
+```
+
+```{r include=FALSE}
+outtme0 <- tme(100,250000,1)
+```
+
+```{r}
+par(mfrow=c(2,2))
+hist(stats0[,1], main = "Distribution des heures travaillées", 
+     xlab = "Fréquence", ylab = "Heures annuelles")
+hist(stats0[,3],  col=bleupale, main = "Distribution des revenus",
+     ylab = "Fréquence", xlab = "Revenu ($)")
+legend("right", legend=c("Revenu brut", "Revenu net"),
+       fill=c(bleupale, bleumoyen), cex=0.8)
+hist(stats0[,5], col=bleumoyen, add=T)
+plot(outtme0[[1]], outtme0[[2]], main = "TMEI, réforme 0", type = "l", lty = 1, 
+     ylim = c(0,1.5), xlab = "Revenu", ylab = "TMEI")
 ```
 
 Calcul du coefficient de Gini sur le revenu net
@@ -905,26 +946,19 @@ print(Gini0)
 
 Notre coefficient de Gini pondéré de `r Gini0` est beaucoup plus faible (plus égalitaire) que celui qui est calculé par Statistique Canada, qui était de 0.284 en 2016 (http://qceco.ca/n/3739). Sans avoir à réfléter parfaitement la réalité québécoise, il nous permettra de comparer les réformes au scénario de base (*reforme=0*). 
 
+# 5. Réforme #1: Prime à l'emploi
+La prime à l'emploi est de 3$/h pour tout individu ayant trouver un emploi et travaillant au moins 30h par semaine. La prime commence à s'appliquer a 30h de travail durant la semaine. Encore une fois les détails de la réforme sont codés dans la fonction `transferts`. Elle assume que les tranferts habituels sont maintenus, à l'exception de la prime pour les travailleurs (basée sur le salaire annuel) qui est remplacée par la prime au travail (subvention de 3\$ de l'heure). Ce type d'aide au travailleur aura pour effet, théoriquement, d'encourager davantage la participation au travail des individus ayant les plus faibles salaires horaires. 
 
-# 5. Réforme #1 : Revenu minimum garanti
-
-## Nouvelles règles fiscales
-
-
-On a donc une valeur de $\theta$ qui permet de répliquer les moments observés dans les données et de donner quelques statistiques descriptives de l'économie simulée. On peut donc maintenant commencer à faire des analyses de réformes.
-
-Pour les personnes qui ont 20 ans et plus, le revenu minimum garanti correspond a 55% du panier de consommation annuel, évalué a 36970.44 dollars en 2020 pour Montreal (le plus eleve de la province). Le panier de consommation est evalue en dollars constants de 2018. Pour les personnes de 65 ans et plus, le revenu minimum garanti correspond a 100% du panier de consommation de 36970.44 dollars. Les règles fiscales de l'attribution des paniers sont déjà codés dans la fonction `transferts`. Elles consistent à attrubuer universellement un revenu minimal garanti correspondant à un pourcentage du panier de consommation selon le type de ménage et l'âge. Les autres transferts ont tous été retirés, incluant l'aide sociale.
-
-````{r}
+```{r}
 reforme <- 1
-````
+```
 
 ### Modification des TMEI:
 
 Pour un couple avec enfant (modifier le 3e terme *i* pour obtenir les TMEI des autres types de ménages):
 
 ```{r }
-outtme <- tme(100,250000,1)
+outtme1 <- tme(100,250000,1)
 ```
 
 ## Simulations du modèle d'offre de travail
@@ -939,7 +973,7 @@ On peut aussi voir les autres statistiques prédites:
 ```{r}
 stats1 <- makestats(thetatry)
 colnames(stats1) <- c("heures travaillées","utilité","revenu brut","taxes et transferts", "revenu net")
-summary(stats1)
+kable(summary(stats1))
 ```
 
 En particulier, ici on voit que tous se sont mis à travailler. C'est une conséquence directe de l'hypothèse sur l'utilité: sans aide sociale, ne pas travailler implique une consommation nulle et une utilité de -Infini. Les individus sont donc prêts à tout pour arriver à consommer. 
@@ -947,8 +981,16 @@ En particulier, ici on voit que tous se sont mis à travailler. C'est une consé
 Voici l'histogramme des heures travaillées et des revenus nets.
 
 ```{r}
-hist(stats1[,1], main = "Distribution des heures travaillées")
-hist(stats1[,5], main = "Distribution des revenus nets")
+par(mfrow=c(2,2))
+hist(stats1[,1], main = "Distribution des heures travaillées", 
+     xlab = "Fréquence", ylab = "Heures annuelles")
+hist(stats1[,3],  col=bleupale, main = "Distribution des revenus",
+     ylab = "Fréquence", xlab = "Revenu ($)")
+legend("right", legend=c("Revenu brut", "Revenu net"),
+       fill=c(bleupale, bleumoyen), cex=0.8)
+hist(stats1[,5], col=bleumoyen, add=T)
+plot(outtme1[[1]], outtme1[[2]], main = "TMEI, réforme 1", type = "l", lty = 1, 
+     ylim = c(0,1.5), xlab = "Revenu", ylab = "TMEI")
 ```
 
 Calculons le coefficient de Gini pour la réforme 1: 
@@ -958,34 +1000,44 @@ Gini1 <-Gini(x=stats1[,5], n=wght)
 Gini1
 ```
 
-# 6. Réforme #2: Prime à l'emploi
-La prime à l'emploi est de 3$/h pour tout individu ayant trouver un emploi et travaillant au moins 30h par semaine. La prime commence à s'appliquer a 30h de travail durant la semaine. Encore une fois les détails de la réforme sont codés dans la fonction `transferts`. Elle assume que les tranferts habituels sont maintenus, à l'exception de la prime pour les travailleurs (basée sur le salaire annuel) qui est remplacée par la prime au travail (subvention de 3\$ de l'heure). Ce type d'aide au travailleur aura pour effet, théoriquement, d'encourager davantage la participation au travail des individus ayant les plus faibles salaires horaires. 
 
-```{r}
+# 6. Réforme #2 : Revenu minimum garanti
+
+## Nouvelles règles fiscales
+
+
+On a donc une valeur de $\theta$ qui permet de répliquer les moments observés dans les données et de donner quelques statistiques descriptives de l'économie simulée. On peut donc maintenant commencer à faire des analyses de réformes.
+
+Pour les personnes qui ont 20 ans et plus, le revenu minimum garanti correspond a 55% du panier de consommation annuel, évalué a 36970.44 dollars en 2020 pour Montreal (le plus eleve de la province). Le panier de consommation est evalue en dollars constants de 2018. Pour les personnes de 65 ans et plus, le revenu minimum garanti correspond a 100% du panier de consommation de 36970.44 dollars. Les règles fiscales de l'attribution des paniers sont déjà codés dans la fonction `transferts`. Elles consistent à attrubuer universellement un revenu minimal garanti correspondant à un pourcentage du panier de consommation selon le type de ménage et l'âge. Les autres transferts ont tous été retirés, incluant l'aide sociale.
+
+````{r}
 reforme <- 2
-```
+````
 
 ### Modification des TMEI:
 
 Pour un couple avec enfant (modifier le 3e terme *i* pour obtenir les TMEI des autres types de ménages):
 
 ```{r }
-outtme <- tme(100,250000,1)
+outtme2 <- tme(100,250000,1)
 ```
 
 ## Simulations du modèle d'offre de travail
-On peut donc utiliser le modèle pour voir les changements anticipés sur les valeurs des moments.
+
+On peut donc utiliser le modèle pour voir les changements anticipés sur les valeurs des moments de la réforme 2.
+
 
 ```{r}
 print(simhours(thetatry))
 ```
-
+Beaucoup plus de gens ne travaillent pas.
+ 
 On peut aussi voir les autres statistiques prédites:
 
 ```{r}
 stats2 <- makestats(thetatry)
 colnames(stats2) <- c("heures travaillées","utilité","revenu brut","taxes et transferts", "revenu net")
-summary(stats2)
+kable(summary(stats2))
 ```
 
 En particulier, ici on voit que tous se sont mis à travailler. C'est une conséquence directe de l'hypothèse sur l'utilité: sans aide sociale, ne pas travailler implique une consommation nulle et une utilité de -Infini. Les individus sont donc prêts à tout pour arriver à consommer. 
@@ -993,16 +1045,25 @@ En particulier, ici on voit que tous se sont mis à travailler. C'est une consé
 Voici l'histogramme des heures travaillées et des revenus nets.
 
 ```{r}
-hist(stats2[,1], main = "Distribution des heures travaillées")
-hist(stats2[,5], main = "Distribution des revenus nets")
+par(mfrow=c(2,2))
+hist(stats2[,1], main = "Distribution des heures travaillées", 
+     xlab = "Fréquence", ylab = "Heures annuelles")
+hist(stats2[,3],  col=bleupale, main = "Distribution des revenus",
+     ylab = "Fréquence", xlab = "Revenu ($)")
+legend("right", legend=c("Revenu brut", "Revenu net"),
+       fill=c(bleupale, bleumoyen), cex=0.8)
+hist(stats2[,5], col=bleumoyen, add=T)
+plot(outtme2[[1]], outtme2[[2]], main = "TMEI, réforme 2", type = "l", lty = 1, 
+     ylim = c(0,1.5), xlab = "Revenu", ylab = "TMEI")
 ```
 
-Calculons le coefficient de Gini pour la réforme 1: 
+Calculons le coefficient de Gini pour la réforme 2: 
 
 ```{r}
 Gini2 <-Gini(x=stats2[,5], n=wght)
 Gini2
 ```
+
 
 # 7. Réforme #3: Combinaison de RMG et prime à l'emploi
 
@@ -1017,7 +1078,7 @@ reforme <- 3
 Pour un couple avec enfant (modifier le 3e terme *i* pour obtenir les TMEI des autres types de ménages):
 
 ```{r}
-outtme <- tme(100,250000,1)
+outtme3 <- tme(100,250000,1)
 ```
 
 ## Simulations du modèle d'offre de travail
@@ -1040,8 +1101,16 @@ summary(stats3)
 Voici l'histogramme des heures travaillées et des revenus nets.
 
 ```{r}
-hist(stats3[,1], main = "Distribution des heures travaillées")
-hist(stats3[,5], main = "Distribution des revenus nets")
+par(mfrow=c(2,2))
+hist(stats3[,1], main = "Distribution des heures travaillées", 
+     xlab = "Fréquence", ylab = "Heures annuelles")
+hist(stats3[,3],  col=bleupale, main = "Distribution des revenus",
+     ylab = "Fréquence", xlab = "Revenu ($)")
+legend("right", legend=c("Revenu brut", "Revenu net"),
+       fill=c(bleupale, bleumoyen), cex=0.8)
+hist(stats3[,5], col=bleumoyen, add=T)
+plot(outtme3[[1]], outtme3[[2]], main = "TMEI, réforme 3", type = "l", lty = 1, 
+     ylim = c(0,1.5), xlab = "Revenu", ylab = "TMEI")
 ```
 
 Calculons le coefficient de Gini pour la réforme 3: 
@@ -1055,49 +1124,55 @@ Gini3
 
 Les réformes sont comparées sur la base des heures travaillées:
 
-```{r fig3, fig.width = 7, fig.height=8}
-# essai 1 graphiques en violon
+```{r fig47, fig.width = 6, fig.height=5}
+# graphiques en violon
 vioplot(stats0[,1],
         stats1[,1],
         stats2[,1],
-        stats3[,1], names = c("De base", "RMG", "Prime au travail", "RMG et PT"),
-        col=c("lightcyan","cyan1","cyan4", "seagreen"), lty="blank")
+        stats3[,1], names = c("De base",  "PT","RMG", "RMG et PT"),
+        col=c("magenta4", "dark turquoise", "seagreen", "blue2"), lty="blank",
+        horizontal = T, 
+        xlab = "Heures travaillées annuelles",
+        main = "Distribution des heures travaillées")
 
-# essai 2 graphiques superposes
-par(mfrow=c(4,1))
-hist(stats0[,1], col="lightcyan", lty="blank")
-hist(stats1[,1], col="cyan1", lty="blank")
-hist(stats2[,1], col="cyan4", lty="blank")
-hist(stats3[,1], col="seagreen", lty="blank")
+
 
 ```
 
 Voici l'effet sur les revenus nets:
 
-```{r fig4, fig.width = 7, fig.height=8}
-# essai 1 graphiques en violon
+```{r fig48, fig.width = 6, fig.height=5}
+#  graphiques en violon
 vioplot(stats0[,5],
         stats1[,5],
         stats2[,5],
-        stats3[,5], names = c("De base", "RMG", "Prime au travail", "RMG et PT"),
-        col=c("lightcyan","cyan1","cyan4", "seagreen"), lty="blank")
+        stats3[,5], names = c("De base",  "PT","RMG", "RMG et PT"),
+        col=c("magenta4", "dark turquoise", "seagreen", "blue2"), lty="blank",ylim = c(0, 150000),
+        xlab = "Revenu net annuel ($)",
+        horizontal = TRUE,
+        main = "Distribution des revenus nets annuels")
 
-# essai 2 graphiques superposes
-par(mfrow=c(4,1))
-hist(stats0[,5], col="lightcyan", lty="blank")
-hist(stats1[,5], col="cyan1", lty="blank")
-hist(stats2[,5], col="cyan4", lty="blank")
-hist(stats3[,5], col="seagreen", lty="blank")
+```
 
+Voici l'effet sur les taux marginaux effectifs d'imposition:
+
+```{r}
+plot(outtme0[[1]], outtme0[[2]], main = "TMEI, ensemble des réformes", type = "l", lty = 2,lwd=2, 
+     col= "magenta4",      ylim = c(0,1), xlab = "Revenu", ylab = "TMEI")
+lines(outtme1[[1]], outtme1[[2]], type = "l", lty = 2, lwd=2, col= "dark turquoise")
+lines(outtme2[[1]], outtme2[[2]], type = "l", lty = 1, col= "seagreen")
+lines(outtme3[[1]], outtme3[[2]], type = "l", lty = 1, col= "blue2")
+legend("bottomright", legend=c("De base", "Prime travail", "Revenu minimum garanti", "RMG et PT"),
+       col=c("magenta4", "dark turquoise", "seagreen", "blue2"), lty=c(2,2,1,1), cex=0.8, box.lty=0)
 ```
 
 Variations de l'indice de Gini, pondéré pour les poids populationnels
 
-```{r}
+```{r, fig49,fig.width = 4.5, fig.height=3 }
 listeGini <- c(Gini0, Gini1, Gini2, Gini3)
 barplot(listeGini,
-        names.arg=c("De base", "RMG", "Prime au travail", "RMG et PT"),
-        col=c("lightcyan","cyan1","cyan4", "seagreen"), ylim = c(0, 0.20),border=NA)
+        names.arg=c("De base",  "PT", "RMG","RMG et PT"),
+        col=c("magenta4", "dark turquoise", "seagreen", "blue2"), ylim = c(0, 0.25),border=NA)
 ```
 
 ## Conclusions
