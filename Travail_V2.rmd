@@ -587,7 +587,7 @@ lfsqc$SCHOOLN[lfsqc$SCHOOLN != 1] <- NA
 n0 <- nrow(lfsqc) # Garde le nombre d'observations initiales
 missingweight <- c(lfsqc[!complete.cases(lfsqc),"FINALWT"])[[1]] #Garde les poids des individus qui seront enlevés
 lfsqc <- lfsqc[complete.cases(lfsqc), ] # Enlève les observations avec des variables manquantes
-lfsqc <- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # Sous-échantillonage pour les tests (commenté pour l'analyse finale, décommenter pour compilation plus rapide)
+#lfsqc <- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # Sous-échantillonage pour les tests (commenté pour l'analyse finale, décommenter pour compilation plus rapide)
 n <- nrow(lfsqc) # Nombre d'individus dans la base
 
 # Ajustement des poids des individus
