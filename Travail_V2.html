@@ -1771,8 +1771,8 @@ hist(Lopt,
 <p>Dans cet exemple, les individus ne peuvent pas travailler 0 heures et n’avoir aucun revenu <em>Y=0</em> car <em>ln(0)</em> n’est pas défini. Les heures simulées dépendent fortement des paramères arbitraires postulés. Dans ce cas hypothétique, nous avons posé que tous les intrants de la fonction d’utilité ont un effet égal à un, sauf l’âge et le fait d’être une femme qui diminuent la préférence pour le loisir. La modification de ces coefficients affecte la distribution des heures de travail simulée dans cette cohorte.</p>
 </div>
 </div>
-<div id="règles-fiscales-québécoises" class="section level1">
-<h1>2. Règles fiscales québécoises</h1>
+<div id="règles-fiscales-appliquées" class="section level1">
+<h1>2. Règles fiscales appliquées</h1>
 <div id="paliers-dimposition-provinciaux-et-fédéraux" class="section level2">
 <h2>Paliers d’imposition provinciaux et fédéraux</h2>
 <p>Nous allons utiliser les taux de taxe et paliers suivants:</p>
@@ -1805,14 +1805,22 @@ hist(Lopt,
   f3 &lt;- 97069
   f4 &lt;- 150473
   f5 &lt;- 214368</code></pre>
+<p>Pour continuer, nous posons que l’aide sociale (<em>asc</em>) existe (elle est égale à 1), et qu’il y a 50 semaines de travail dans une année.</p>
 <pre class="r"><code>asc &lt;- 1
 weeks &lt;- 50 #nombre d'heures par année</code></pre>
 </div>
 <div id="transferts" class="section level2">
 <h2>Transferts</h2>
-<p>La liste des principaux transferts fédéraux et provinciaux est tirée de l’étude «TAUX MARGINAUX EFFECTIFS D’IMPOSITION : UNE COMPARAISON QUÉBEC-ONTARIO » de Blancquaert, Clavet, Duclos, Fortin et Marchand (2017). La plupart des transferts dépendent du type de ménage. Pour les ménages avec enfants, nous avons supposé un nombre de 1 enfant par ménage. Comme le LFS est une enquête sur les individus et non sur les ménages, les transferts destinés à des couples ont été divisés par deux de ne pas distribuer en double les montants. Les transferts initiaux sont activés lorsque <em>reforme = 0</em>.</p>
-<p>Les abréviations suivantes ont été utilisées : * <em>ps</em> : personne seule * <em>c</em> : couple sans enfants * <em>fm</em> : famille monoparentale * <em>ce</em> : couple avec enfants</p>
+<p>La liste des principaux transferts fédéraux et provinciaux est tirée de l’étude «TAUX MARGINAUX EFFECTIFS D’IMPOSITION : UNE COMPARAISON QUÉBEC-ONTARIO » de Blancquaert, Clavet, Duclos, Fortin et Marchand (2017). Nous supposons l’impact d’utilisation des transferts énumérés dans cet article et négligeons l’impact des autres crédits d’impôt disponibles plus spécifiques aux différentes situations des ménages, dont nous jugeons l’impact moindre pour la complexification que leur analyse apporte. La plupart des transferts dépendent du type de ménage. Pour les ménages avec enfants, nous avons supposé un nombre de 1 enfant par ménage en raison du faible taux de natalité. Comme le LFS est une enquête sur les individus et non sur les ménages, les transferts destinés à des couples ont été divisés par deux afin de ne pas distribuer en double les montants. Les transferts initiaux sont activés lorsque reforme = 0.</p>
+<p>Les abréviations suivantes ont été utilisées :</p>
+<ul>
+<li><p><em>ps</em> : personne seule</p></li>
+<li><p><em>c</em> : couple sans enfants</p></li>
+<li><p><em>fm</em> : famille monoparentale</p></li>
+<li><p><em>ce</em> : couple avec enfants</p></li>
+</ul>
 <pre class="r"><code>#la variable reforme indique quel scenario utiliser. reforme = 0 est le scenario de base
+
 reforme &lt;- 0
 
 transferts &lt;- function(inc, i){
@@ -1831,17 +1839,19 @@ transferts &lt;- function(inc, i){
   if (ps[i] == 1) {
     TPS_TVH &lt;- TPS_TVH + min(155, max(0, 0.02*(inc-9590))) # montant pour celibataire
   } else if (fm[i] == 1) {
-    TPS_TVH &lt;- TPS_TVH + 155 # montant si monoparental
+    TPS_TVH &lt;- TPS_TVH + 155 # montant supplementaire celibataire applicable au parent monoparental
   }
   if (inc &gt; 38507) {
-    TPS_TVH &lt;- max(0, TPS_TVH - 0.05*(inc-38507)) # deduction pour haut revenu 
+    TPS_TVH &lt;- max(0, TPS_TVH - 0.05*(inc-38507))  # reduction de 5% du credit a partir d'un revenu superieur a 38507
   } 
   if (c[i] == 1 | ce[i] == 1 ) { 
-    TPS_TVH &lt;- TPS_TVH / 2 # montant final divise par 2 si en couple 
+    TPS_TVH &lt;- TPS_TVH / 2  # montant final divise par 2 si en couple car une seule personne par couple peut avoir le transfert
   }
   
   
-  #Prime au travail maximal
+  #Prime au travail 
+  # Par simplification, nous utilisons les parametres de base et n'ajoutons pas la prime pour personne handicapee.
+  
   # Sources des donnees : https://www.revenuquebec.ca/fr/citoyens/credits-dimpot/credits-dimpot-relatifs-a-la-prime-au-travail/
   # Bonifie le revenu de travail d'un % à partir d'un seuil, puis diminue de 10% à partir d'un second seuil 
   if (ps[i] == 1){
@@ -1874,7 +1884,7 @@ transferts &lt;- function(inc, i){
   #Source des donnees : https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-canadienne-pour-les-travailleurs/ 
   if (ps[i] == 1){
     if (inc &gt; 2400 &amp; inc &lt; 23458){ # celibataire
-      AllocationTravailleur &lt;- min(2280, 0.274*(inc-2400)) - max(0, 0.2*(inc-12060))
+      AllocationTravailleur &lt;- min(2280, 0.274*(inc-2400)) - max(0, 0.2*(inc-12060)) # L'allocation diminue de 20% apres un seuil de revenu.
     } else {
       AllocationTravailleur &lt;- 0
     }
@@ -1907,10 +1917,10 @@ transferts &lt;- function(inc, i){
       ACE &lt;- 5708 # on suppose qu'il n'y a qu'un seul enfant
     }
     if (inc &gt; 31711) { # premier seul de reduction (marginal)
-      ACE &lt;- ACE - 0.07*min(36997, inc - 31711) # 7% pour revenu entre 31711 et 68708
+      ACE &lt;- ACE - 0.07*min(36997, inc - 31711) #  #Diminution de 7% pour revenu entre 31711 et 68708
     }
-    if (inc &gt; 68708) { # deuxième seuil
-      ACE &lt;- ACE - 0.032*(inc - 68708) # 3,2% pour revenu entre 31711 et 68708
+    if (inc &gt; 68708) {  # Deuxième seuil de réduction
+      ACE &lt;- ACE - 0.032*(inc - 68708) # Diminution de 3,2% pour revenu superieur a 68708
     }
     ACE &lt;- max(ACE, 0) # on s'assure que la valeur n'est pas negative
     if (ce[i] == 1) {
@@ -1923,6 +1933,8 @@ transferts &lt;- function(inc, i){
   
   #Allocation famille
   # Source des donnees : https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-famille-soutien-enfants/
+  # Utilisation des données pour l'annee 2020
+  # Par simplification du modele, nous avons decide un maximum de 1 enfant par famille sans handicape ou soins exceptionnels.
   if (fm[i] == 1) {
     AllocationFamille &lt;- 2515 + 882 # prime de base plus prime pour monoparental
     if (inc &gt; 36256) {
@@ -1940,6 +1952,8 @@ transferts &lt;- function(inc, i){
   }
   
   #Credit solidarite
+  # Par fin de simplification, les composantes relatives aux villages nordiques on ete ignores. De plus, un seul scenario de base a ete effectue par type de menage.
+  
   # Sources des donnees : http://www4.gouv.qc.ca/FR/Portail/Citoyens/Evenements/acheter-renover-maison/Pages/credit-impot-pour-solidarite.aspx  et https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/credit-impot-solidarite/ 
   if (ps[i] == 1) {
     CreditSolidarite &lt;- 297+141+(577) # montant de base
@@ -1973,7 +1987,8 @@ transferts &lt;- function(inc, i){
   
 
   # Reforme #1: Prime a l'emploi
-  # Inspirée d'une des option analysé par Clavet et al. (2013) Source : https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491
+# Inspirée d'une des options analysées par Clavet et al. (2013) Source : https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491
+  
   if ((inc / wage[i])&gt;30*weeks) {
     PrimeEmploi &lt;- (inc/wage[i]-(30*weeks))*3 
   } else {
@@ -1988,12 +2003,12 @@ transferts &lt;- function(inc, i){
       # https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1110022401 
       # https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1810000413
       
-  panier &lt;- 36970.44 # panier de consommation pris pour Montreal
+  panier &lt;- 36970.44 # panier de consommation pris pour Montreal car le plus eleve de la province
   
   if (age[i] &gt; 1 &amp; age[i] &lt; 11) {
-    rmg &lt;- panier * 0.55 # 55 % du panier pour personne de moins de 65 ans 
+    rmg &lt;- panier * 0.55 # 55 % du panier pour personne entre 20 et 65 ans 
   } else if (age[i] &gt; 10) {
-    rmg &lt;- panier
+    rmg &lt;- panier  # 100% de la valeur du panier de consommation pour une personne de 65 ans et plus
   } else {
     rmg &lt;- 0 # 0 si moins de 20 ans
   }
@@ -2001,12 +2016,15 @@ transferts &lt;- function(inc, i){
   if (ps[i] == 1) {
     rmg &lt;- rmg
   } else if (fm[i] == 1) {
-     rmg &lt;- rmg*1.45 # ajustement pour situtation familiale
+     rmg &lt;- rmg*1.45  # ajustement pour situation familiale, estimations des depenses d'une famille monoparentale a 145% des depenses d'une personne seule
+
   } else if (c[i] == 1) {
-     rmg &lt;- rmg*1.87/2 # ajustement pour situtation familiale
+     rmg &lt;- rmg*1.87/2  # ajustement pour situation familiale, estimation des depenses d'un couple a 187% des depenses d'une personne seule
+     
   } else if (ce[i] == 1) {
-     rmg &lt;- rmg*2.48/2 # ajustement pour situtation familialee
+     rmg &lt;- rmg*2.48/2  # ajustement pour situation familiale, estimation des depenses d'un couple avec enfant a 248% des depenses d'une personne seule
   }
+#divise par deux dans le cas des couples (avec et sans enfant) pour avoir le montant obtenu par chaque personne
 
   if (reforme == 0) {
     assign(&quot;asc&quot;, 1, envir = .GlobalEnv)
@@ -2027,6 +2045,7 @@ transferts &lt;- function(inc, i){
 </div>
 <div id="calcul-du-revenu-net" class="section level2">
 <h2>Calcul du revenu net</h2>
+<p>L’impôt est calculé selon la combinaison des paliers d’imposition fédéraux et provinciaux. Nous calculons le montant d’impôt prélevé sur le revenu avec la variation subie entre chaque palier d’imposition. Dans un but de simplification, nous ignorons la réforme de la CAQ concernant la taxation des heures supplémentaires travaillées.</p>
 <pre class="r"><code>itax &lt;- function(inc,i){
   # Calcule les impots sur le revenu
    
@@ -2176,7 +2195,7 @@ for (i in 1:4) {
 </table>
 <div id="chargement-des-données" class="section level2">
 <h2>Chargement des données</h2>
-<p>Les données contiennent un total de 17865 observations. Nous retirons les étudiants car leur offre de travail ne serait pas compatible avec le modèle théorique postulé. Pour ce faire, nous leur assignons une valeur manquante dans la colonne <em>SCHOOLN</em> afin que ces individus soient supprimés par la commande <em>complete.cases</em>. Cette dernière enlève les valeurs manquantes. En enlevant ces observations qui ont des valeurs manquantes, nous prenons soin de conserver leurs poids afin de repondérer les autres individus. Pour les tests, nous avons tiré un échantillon de 1000 individus. L’analyse finale a été effectuée sur l’ensemble des observations. Dans les deux cas, nous avons également noté <em>n</em> le nombre d’individus dans l’échantillon courant.</p>
+<p>Les données contiennent un total de 17865 observations. Nous retirons les étudiants car leur offre de travail ne serait pas compatible avec le modèle théorique postulé. Pour ce faire, nous leur assignons une valeur manquante dans la colonne <code>SCHOOLN</code> afin que ces individus soient supprimés par la commande <code>complete.cases</code>. Cette dernière enlève les valeurs manquantes. Il y a 1116 ménages dans les données pour lesquels l’âge des enfants est manquant, ce qui devient plus problématique pour l’allocation canadienne pour enfants, qui varie selon l’âge des enfants. Dans un objectif de simplification, ces données ont été supprimées de la base de données initiale. En enlevant ces observations qui ont des valeurs manquantes, nous prenons soin de conserver leurs poids afin de repondérer les autres individus. Pour les tests, nous avons tiré un échantillon de 1000 individus. L’analyse finale a été effectuée sur l’ensemble des observations. Dans les deux cas, nous avons également noté n le nombre d’individus dans l’échantillon courant.</p>
 <pre class="r"><code>lfs &lt;- read_csv(&quot;./LFS-71M0001-E-2020-February_F1.csv&quot;, col_types = cols()) # importe les données du LFS, Février 2020
 lfsqc &lt;- lfs[lfs$PROV==24,] # Garde uniquement le Québec
 rm(lfs) # Supprime la base initiale de la mémoire
@@ -2625,7 +2644,8 @@ print(Gini0)</code></pre>
 </div>
 <div id="réforme-1-prime-à-lemploi" class="section level1">
 <h1>5. Réforme #1: Prime à l’emploi</h1>
-<p>La prime à l’emploi est de 3$/h pour tout individu ayant trouver un emploi et travaillant au moins 30h par semaine. La prime commence à s’appliquer a 30h de travail durant la semaine. Encore une fois les détails de la réforme sont codés dans la fonction <code>transferts</code>. Elle assume que les tranferts habituels sont maintenus, à l’exception de la prime pour les travailleurs (basée sur le salaire annuel) qui est remplacée par la prime au travail (subvention de 3$ de l’heure). Ce type d’aide au travailleur aura pour effet, théoriquement, d’encourager davantage la participation au travail des individus ayant les plus faibles salaires horaires.</p>
+<p>On a donc une valeur de <span class="math inline">\(\theta\)</span> qui permet de répliquer les moments observés dans les données et de donner quelques statistiques descriptives de l’économie simulée. On peut donc maintenant commencer à faire des analyses de réformes.</p>
+<p>La prime à l’emploi est de 3<span class="math inline">\(/h pour tout individu ayant trouvé un emploi et travaillant au moins 30h par semaine. La prime commence à s’appliquer à 30h de travail durant la semaine. Elle est prise de l’article de Clavet et al. (2013). De cet article, les auteurs font l’hypothèse que la stimulation de l’emploi est la meilleure façon de sortir les agents de la pauvreté matérielle. Ce type d’aide aux travailleurs aura pour effet, théoriquement, d’encourager davantage la participation au travail des individus ayant les plus faibles salaires horaires. Encore une fois les détails de la réforme sont codés dans la fonction `transferts`. Elle assume que les transferts habituels sont maintenus, à l’exception de la prime pour les travailleurs (basée sur le salaire annuel) qui est remplacée par la prime au travail (subvention de 3\)</span> de l’heure).</p>
 <pre class="r"><code>reforme &lt;- 1</code></pre>
 <div id="modification-des-tmei" class="section level3">
 <h3>Modification des TMEI:</h3>
@@ -2730,8 +2750,7 @@ Gini1</code></pre>
 <h1>6. Réforme #2 : Revenu minimum garanti</h1>
 <div id="nouvelles-règles-fiscales" class="section level2">
 <h2>Nouvelles règles fiscales</h2>
-<p>On a donc une valeur de <span class="math inline">\(\theta\)</span> qui permet de répliquer les moments observés dans les données et de donner quelques statistiques descriptives de l’économie simulée. On peut donc maintenant commencer à faire des analyses de réformes.</p>
-<p>Pour les personnes qui ont 20 ans et plus, le revenu minimum garanti correspond a 55% du panier de consommation annuel, évalué a 36970.44 dollars en 2020 pour Montreal (le plus eleve de la province). Le panier de consommation est evalue en dollars constants de 2018. Pour les personnes de 65 ans et plus, le revenu minimum garanti correspond a 100% du panier de consommation de 36970.44 dollars. Les règles fiscales de l’attribution des paniers sont déjà codés dans la fonction <code>transferts</code>. Elles consistent à attrubuer universellement un revenu minimal garanti correspondant à un pourcentage du panier de consommation selon le type de ménage et l’âge. Les autres transferts ont tous été retirés, incluant l’aide sociale.</p>
+<p>La réforme fiscale via le revenu minimum garanti est inspirée de celle proposée par Boccanfuso, Cousineau et Fonseca (2020). Inversement à l’aide sociale, son caractère universel ne crée pas de mur pour les individus qui en bénéficient et qui désirent travailler. Pour les personnes qui ont 20 ans et plus, le revenu minimum garanti correspond a 55% du panier de consommation annuel, évalué à 36970.44 dollars en 2020 pour Montréal (le plus élevé de la province). Le panier de consommation est évalué en dollars constants de 2018 (Données du Tableau 11-10-0066-01 de Statistiques Canada, pondéré via un ratio calculé à l’aide des données du tableau 11-10-0224-01 de Statistiques Canada). Pour les personnes de 65 ans et plus, le revenu minimum garanti correspond à 100% du panier de consommation de 36970.44 dollars. Les règles fiscales de l’attribution des paniers sont déjà codées dans la fonction transferts. Elles consistent à attribuer universellement un revenu minimum garanti correspondant à un pourcentage du panier de consommation selon le type de ménage et l’âge. Les autres transferts ont tous été retirés, incluant l’aide sociale.</p>
 <pre class="r"><code>reforme &lt;- 2</code></pre>
 <div id="modification-des-tmei-1" class="section level3">
 <h3>Modification des TMEI:</h3>
@@ -2925,8 +2944,8 @@ legend(&quot;bottomright&quot;, legend=c(&quot;De base&quot;, &quot;Prime travai
 <pre class="r"><code>listeGini &lt;- c(Gini0, Gini1, Gini2, Gini3)
 barplot(listeGini,
         names.arg=c(&quot;De base&quot;,  &quot;PT&quot;, &quot;RMG&quot;,&quot;RMG et PT&quot;),
-        col=c(&quot;magenta4&quot;, &quot;dark turquoise&quot;, &quot;seagreen&quot;, &quot;blue2&quot;), ylim = c(1, 0.25),border=NA)</code></pre>
-<p><img src="data:image/png;base64,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" width="432" /></p>
+        col=c(&quot;magenta4&quot;, &quot;dark turquoise&quot;, &quot;seagreen&quot;, &quot;blue2&quot;), ylim = c(0.1, 0.25),border=NA)</code></pre>
+<p><img src="data:image/png;base64,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" width="432" /></p>
 <div id="conclusions" class="section level2">
 <h2>Conclusions</h2>
 <p>En bref,</p>
@@ -2943,12 +2962,14 @@ barplot(listeGini,
 <p>Chaire en fiscalité et en finances publiques, Allocation famille, École de gestion de l’Université de Sherbrooke, 2019, article accessible à l’adresse &lt; <a href="https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-famille-soutien-enfants/" class="uri">https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-famille-soutien-enfants/</a> &gt;, consulté le 8 avril 2020</p>
 <p>Chaire en fiscalité et en finances publiques, Crédit d’impôt pour solidarité, École de gestion de l’Université de Sherbrooke, 2019, article accessible à l’adresse &lt; <a href="https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/credit-impot-solidarite/" class="uri">https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/credit-impot-solidarite/</a> &gt;, consulté le 8 avril 2020</p>
 <p>Chaire en fiscalité et en finances publiques, Allocation canadienne pour les travailleurs, École de gestion de l’Université de Sherbrooke, 2020, article accessible à l’adresse &lt; <a href="https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-canadienne-pour-les-travailleurs/" class="uri">https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-canadienne-pour-les-travailleurs/</a> &gt;, consulté le 8 avril 2020</p>
+<p>Cirano, Évolution du coefficient de Gini, revenu disponible ajusté, Le Québec économique, 2020, données accessible à l’adresse &lt;<a href="https://qe.cirano.qc.ca/theme/revenus-inegalites/inegalites/graphique-evolution-coefficient-gini-revenu-disponible-ajuste" class="uri">https://qe.cirano.qc.ca/theme/revenus-inegalites/inegalites/graphique-evolution-coefficient-gini-revenu-disponible-ajuste</a> &gt;, consulté le 28 mars 2020</p>
 <p>Gouvernement du Canada, Les taux d’imposition canadiens pour les particuliers - années courante et années passées, 2020, données accessibles à l’adresse &lt; <a href="https://www.canada.ca/fr/agence-revenu/services/impot/particuliers/foire-questions-particuliers/taux-imposition-canadiens-particuliers-annee-courante-annees-passees.html#federal" class="uri">https://www.canada.ca/fr/agence-revenu/services/impot/particuliers/foire-questions-particuliers/taux-imposition-canadiens-particuliers-annee-courante-annees-passees.html#federal</a> &gt;, consulté le 8 avril 2020</p>
 <p>Gouvernement du Québec, Programme d’aide sociale, Services Québec - Citoyens, s’installer au Québec, Ministère du travail, de l’emploi et de la solidarité sociale, données accessibles à l’adresse &lt; <a href="http://www4.gouv.qc.ca/FR/Portail/Citoyens/Evenements/immigrer-au-quebec/Pages/programme-aide-sociale.aspx" class="uri">http://www4.gouv.qc.ca/FR/Portail/Citoyens/Evenements/immigrer-au-quebec/Pages/programme-aide-sociale.aspx</a> &gt;, consulté le 8 avril 2020</p>
 <p>Gouvernement du Québec, Crédit d’impôt pour solidarité, Services Québec -Citoyens, Propriétaires d’une habitation, 2020, données accessibles à l’adresse &lt; <a href="http://www4.gouv.qc.ca/FR/Portail/Citoyens/Evenements/acheter-renover-maison/Pages/credit-impot-pour-solidarite.aspx" class="uri">http://www4.gouv.qc.ca/FR/Portail/Citoyens/Evenements/acheter-renover-maison/Pages/credit-impot-pour-solidarite.aspx</a> &gt;, consulté le 8 avril 2020</p>
 <p>NRG CPA inc., Déductions à la source et charges sociales, 2020, données disponibles à l’adresse &lt; <a href="http://www.nrgcpa.ca/deductions-a-la-source-et-charges-sociales" class="uri">http://www.nrgcpa.ca/deductions-a-la-source-et-charges-sociales</a> &gt;, consulté le 8 avril 2020</p>
 <p>Revenu Québec, Taux d’imposition, 2020, données accessibles à l’adresse &lt; <a href="https://www.revenuquebec.ca/fr/citoyens/declaration-de-revenus/produire-votre-declaration-de-revenus/taux-dimposition/" class="uri">https://www.revenuquebec.ca/fr/citoyens/declaration-de-revenus/produire-votre-declaration-de-revenus/taux-dimposition/</a> &gt;, consulté le 8 avril 2020</p>
 <p>Revenu Québec, Crédits d’impôt relatifs à la prime au travail, 2020, données accessibles à l’adresse &lt; <a href="https://www.revenuquebec.ca/fr/citoyens/credits-dimpot/credits-dimpot-relatifs-a-la-prime-au-travail/" class="uri">https://www.revenuquebec.ca/fr/citoyens/credits-dimpot/credits-dimpot-relatifs-a-la-prime-au-travail/</a> &gt;, consulté le 8 avril 2020</p>
+<p>Statistique Canada, Labour Force Survey, February 2020 [Canada], Labour Statistic division, Canada, 2020, les données sont accessible par l’adresse &lt;<a href="http://odesi2.scholarsportal.info.acces.bibl.ulaval.ca/webview/" class="uri">http://odesi2.scholarsportal.info.acces.bibl.ulaval.ca/webview/</a> &gt;, consulté le 25 mars 2020</p>
 <p>Statistique Canada, Tableau 11-10-0066-01, Seuil de la Mesure du panier de consommation (MPC) pour famille de référence selon la région de la Mesure du panier de consommation, la composante et l’année de basei, données accessibles à l’adresse &lt; <a href="https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1110006601" class="uri">https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1110006601</a> &gt;, consulté le 8 avril 2020</p>
 <p>Statistique Canada, Tableau 11-10-0224-01, Dépenses des ménages selon le type de ménage, données accessibles à l’adresse &lt; <a href="https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1110022401" class="uri">https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1110022401</a> &gt;, consulté le 8 avril 2020</p>
 <p>Statistique Canada, Tableau 18-10-0004-13, Indice des prix à la consommation selon le groupe de produits, données mensuelles, variation en pourcentage, non désaisonnalisées, Canada, provinces, Whitehorse, Yellowknife et Iqaluit, données accessibles à l’adresse &lt; <a href="https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1810000413" class="uri">https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1810000413</a> &gt;, consulté le 8 avril 2020</p>
