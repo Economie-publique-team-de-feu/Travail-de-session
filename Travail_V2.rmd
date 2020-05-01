@@ -36,7 +36,8 @@ Comme mentionné, les effets de ces réformes seront comparés sur la base de l'
 ```{r}
 library(readr) # package pour lire les .csv
 library(compiler) # package pour le Just-in-time compilation
-# library(DescTools) # Package pour le coefficient de Gini
+library(DescTools) # Package pour le coefficient de Gini
+library(vioplot) # Pour faire des beaux graphiques
 enableJIT(3) # Option du package compiler
 set.seed(123) # Pour répliquer les résultats
 
@@ -440,10 +441,10 @@ transferts <- function(inc, i){
   if (reforme == 0) {
     assign("asc", 1, envir = .GlobalEnv)
     transferts <- TPS_TVH + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite + PrimeTravail
-  } else if (reforme == 1) {
+  } else if (reforme == 2) {
     assign("asc", 1, envir = .GlobalEnv)
     transferts <- TPS_TVH + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite + PrimeEmploi
-  } else if (reforme == 2) {
+  } else if (reforme == 1) {
     assign("asc", 0, envir = .GlobalEnv)
     transferts <- rmg
   } else if (reforme == 3 ) {
@@ -580,7 +581,7 @@ lfsqc$SCHOOLN[lfsqc$SCHOOLN != 1] <- NA
 n0 <- nrow(lfsqc) # Garde le nombre d'observations initiales
 missingweight <- c(lfsqc[!complete.cases(lfsqc),"FINALWT"])[[1]] #Garde les poids des individus qui seront enlevés
 lfsqc <- lfsqc[complete.cases(lfsqc), ] # Enlève les observations avec des variables manquantes
-lfsqc <- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # Sous-échantillonage pour les tests (à commenter pour l'analyse finale)
+#lfsqc <- lfsqc[sample(1:nrow(lfsqc), 1000, replace=FALSE),] # Sous-échantillonage pour les tests (commenté pour l'analyse finale, décommenter pour compilation plus rapide)
 n <- nrow(lfsqc) # Nombre d'individus dans la base
 
 # Ajustement des poids des individus
@@ -668,14 +669,14 @@ Les variables globales sont définies comme suit:
 
 * *nincr* est le nombre d'incréments (le nombre de sauts) possibles. 
 
-* *nsim* est le nombre de simulations que nous allons faire pour ajouter des termes d'erreurs dans le modèle. Nous l'avons fixé à 10. Un nombre trop faible induit des risques que les erreurs induisent trop de *bruit* dans les données et un nombre trop élevé allonge la durée de compilation du code.  
+* *nsim* est le nombre de simulations que nous allons faire pour ajouter des termes d'erreurs dans le modèle. Nous l'avons fixé à 100. Un nombre trop faible induit des risques que les erreurs induisent trop de *bruit* dans les données et un nombre trop élevé allonge la durée de compilation du code. Nous suggérons de le poser à 10 pour une compilation plus rapide.   
 
 ```{r}
 Lmax <- 4250
 weeks <- 50
 lincr <- 250
 nincr <- Lmax/lincr +1
-nsim <- 10
+nsim <- 100
 ```
 
 
@@ -910,44 +911,17 @@ Notre coefficient de Gini pondéré de `r Gini0` est beaucoup plus faible (plus 
 ## Nouvelles règles fiscales
 
 
-On a donc une valeur de $\theta$ qui permet de répliquer les moments observés dans les données et de donner quelques statistiques descriptives de l'économie simulée. On peut donc maintenant commencer à faire des analyses de réformes. À titre d'exemple, ici, enlevons le programme d'aide sociale.
+On a donc une valeur de $\theta$ qui permet de répliquer les moments observés dans les données et de donner quelques statistiques descriptives de l'économie simulée. On peut donc maintenant commencer à faire des analyses de réformes.
 
-```{r}
-as <- 0
-```
-Pour les personnes qui ont 20 ans et plus, le revenu minimum garanti correspond a 55% du panier de consommation annuel, evalue a 36970.44 dollars en 2020 pour Montreal (le plus eleve de la province). Le panier de consommation est evalue en dollars constants de 2018. Pour les personnes de 65 ans et plus, le revenu minimum garanti correspond a 100% du panier de consommation de 36970.44 dollars 2018.
+Pour les personnes qui ont 20 ans et plus, le revenu minimum garanti correspond a 55% du panier de consommation annuel, évalué a 36970.44 dollars en 2020 pour Montreal (le plus eleve de la province). Le panier de consommation est evalue en dollars constants de 2018. Pour les personnes de 65 ans et plus, le revenu minimum garanti correspond a 100% du panier de consommation de 36970.44 dollars. Les règles fiscales de l'attribution des paniers sont déjà codés dans la fonction `transferts`. Elles consistent à attrubuer universellement un revenu minimal garanti correspondant à un pourcentage du panier de consommation selon le type de ménage et l'âge. Les autres transferts ont tous été retirés, incluant l'aide sociale.
 
-```{r eval=FALSE, echo=TRUE}
-if (ps[i]== 1) {
-   if (age_12 >1 & age_12<10) 
-     rmg <- (36970.44*0.55) # 55% panier de consommation pris pour Montreal (le plus eleve des choix), revenu indique en dollars constants de 2018
-  else if (age_12>11)
-    rmg <- 36970.44 #revenu minimum garanti pour les personnes de 65 ans et plus est egal a 100% du panier de consommation
-  else rmg <-0 #concerne seulement la categorie 1 (15-19 ans), qu'on n'a pas dans l'échantillon
-} else if (fm[i] == 1) {
-   if (age_12 >1 & age_12<10) 
-     rmg <- (36970.44*0.55*1.45) # 55% panier de consommation pris pour Montreal (le plus eleve des choix), revenu indique en dollars constants de 2018. Plus une représentation des dépenses additionnel entrainer par le fait d'etre un menage monoparentale (ratio determiner par les données du tableau 11-10-0224-01 de statistique canada)
-  else if (age_12>11)
-    rmg <- 36970.44 #revenu minimum garanti pour les personnes de 65 ans et plus est egal a 100% du panier de consommation
-  else rmg <-0 #concerne seulement la categorie 1 (15-19 ans), qu'on n'a pas dans l'échantillon
-}else if (c[i] == 1){ 
-   if (age_12 >1 & age_12<10) 
-     rmg <- (36970.44*0.55*1.87) # 55% panier de consommation pris pour Montreal (le plus eleve des choix), revenu indique en dollars constants de 2018. Plus une représentation des dépenses additionnel entrainer par le fait d'etre un menage monoparentale (ratio determiner par les données du tableau 11-10-0224-01 de statistique canada)
- else if (age_12>11)
-    rmg <- 36970.44 #revenu minimum garanti pour les personnes de 65 ans et plus est egal a 100% du panier de consommation
-  else rmg <-0 #concerne seulement la categorie 1 (15-19 ans), qu'on n'a pas dans l'échantillon
-}else if (ce[i]==1){
-   if (age_12 >1 & age_12<10) 
-     rmg <- (36970.44*0.55*2.48) #panier de consommation pris pour Montreal (le plus eleve des choix), revenu indique en dollars constants de 2018. Plus une représentation des dépenses additionnel entrainer par le fait d'etre un menage monoparentale (ratio determiner par les données du tableau 11-10-0224-01 de statistique canada)
-  else if (age_12>11)
-    rmg <- 36970.44 #revenu minimum garanti pour les personnes de 65 ans et plus est egal a 100% du panier de consommation
-  else rmg <-0 #concerne seulement la categorie 1 (15-19 ans), qu'on n'a pas dans l'échantillon
-}
-
-
-```
+````{r}
+reforme <- 1
+````
 
 ### Modification des TMEI:
+
+Pour un couple avec enfant (modifier le 3e terme *i* pour obtenir les TMEI des autres types de ménages):
 
 ```{r }
 outtme <- tme(100,250000,1)
@@ -956,38 +930,180 @@ outtme <- tme(100,250000,1)
 ## Simulations du modèle d'offre de travail
 On peut donc utiliser le modèle pour voir les changements anticipés sur les valeurs des moments.
 
-```{r eval=FALSE, echo=TRUE}
+```{r}
 print(simhours(thetatry))
 ```
 
 On peut aussi voir les autres statistiques prédites:
 
-```{r eval=FALSE, echo=TRUE}
-matstats_noas <- makestats(thetatry)
-colnames(matstats_noas) <- c("heures travaillées","utilité","revenu brut","taxes et transferts")
-summary(matstats_noas)
+```{r}
+stats1 <- makestats(thetatry)
+colnames(stats1) <- c("heures travaillées","utilité","revenu brut","taxes et transferts", "revenu net")
+summary(stats1)
 ```
 
-En particulier, ici on voit que tous se sont mis à travailler. C'est une conséquence directe de l'hypothèse sur l'utilité: sans aide sociale, ne pas travailler implique une consommation nulle et une utilité de -Infini. Les individus sont donc prêts à tout pour arriver à consommer. Remettons l'histogramme des heures travaillées (simulées) sur le modèle avec assurance emploi:
+En particulier, ici on voit que tous se sont mis à travailler. C'est une conséquence directe de l'hypothèse sur l'utilité: sans aide sociale, ne pas travailler implique une consommation nulle et une utilité de -Infini. Les individus sont donc prêts à tout pour arriver à consommer. 
 
-```{r eval=FALSE, echo=TRUE}
-hist(matstats[,1])
+Voici l'histogramme des heures travaillées et des revenus nets.
+
+```{r}
+hist(stats1[,1], main = "Distribution des heures travaillées")
+hist(stats1[,5], main = "Distribution des revenus nets")
 ```
 
+Calculons le coefficient de Gini pour la réforme 1: 
+
 ```{r eval=FALSE, echo=TRUE}
-hist(matstats_noas[,1])
+Gini1 <-Gini(x=stats1[,5], n=wght)
+Gini1
 ```
 
 # 6. Réforme #2: Prime à l'emploi
-La prime à l'emploi est de 3$/h pour tout individu ayant trouver un emploi et travaillant au moins 30h par semaine. La prime commence à s'appliquer a 30h de travail durant la semaine.
+La prime à l'emploi est de 3$/h pour tout individu ayant trouver un emploi et travaillant au moins 30h par semaine. La prime commence à s'appliquer a 30h de travail durant la semaine. Encore une fois les détails de la réforme sont codés dans la fonction `transferts`. Elle assume que les tranferts habituels sont maintenus, à l'exception de la prime pour les travailleurs (basée sur le salaire annuel) qui est remplacée par la prime au travail (subvention de 3\$ de l'heure). Ce type d'aide au travailleur aura pour effet, théoriquement, d'encourager davantage la participation au travail des individus ayant les plus faibles salaires horaires. 
+
 ```{r}
-prime <- 3
+reforme <- 2
 ```
+
+### Modification des TMEI:
+
+Pour un couple avec enfant (modifier le 3e terme *i* pour obtenir les TMEI des autres types de ménages):
+
+```{r }
+outtme <- tme(100,250000,1)
+```
+
+## Simulations du modèle d'offre de travail
+On peut donc utiliser le modèle pour voir les changements anticipés sur les valeurs des moments.
+
+```{r}
+print(simhours(thetatry))
+```
+
+On peut aussi voir les autres statistiques prédites:
+
+```{r}
+stats2 <- makestats(thetatry)
+colnames(stats2) <- c("heures travaillées","utilité","revenu brut","taxes et transferts", "revenu net")
+summary(stats2)
+```
+
+En particulier, ici on voit que tous se sont mis à travailler. C'est une conséquence directe de l'hypothèse sur l'utilité: sans aide sociale, ne pas travailler implique une consommation nulle et une utilité de -Infini. Les individus sont donc prêts à tout pour arriver à consommer. 
+
+Voici l'histogramme des heures travaillées et des revenus nets.
+
+```{r}
+hist(stats2[,1], main = "Distribution des heures travaillées")
+hist(stats2[,5], main = "Distribution des revenus nets")
+```
+
+Calculons le coefficient de Gini pour la réforme 1: 
+
+```{r eval=FALSE, echo=TRUE}
+Gini2 <-Gini(x=stats2[,5], n=wght)
+Gini2
+```
+
 # 7. Réforme #3: Combinaison de RMG et prime à l'emploi
+
+Dans cette réforme, nous combinons les réformes 1 et 2, soient un revenu minimum garanti et une prime au travail. Tous les autres transferts, incluant l'aide sociale sont supprimés. 
+
+```{r}
+reforme <- 3
+```
+
+### Modification des TMEI:
+
+Pour un couple avec enfant (modifier le 3e terme *i* pour obtenir les TMEI des autres types de ménages):
+
+```{r }
+outtme <- tme(100,250000,1)
+```
+
+## Simulations du modèle d'offre de travail
+On peut donc utiliser le modèle pour voir les changements anticipés sur les valeurs des moments.
+
+```{r}
+print(simhours(thetatry))
+```
+
+On peut aussi voir les autres statistiques prédites:
+
+```{r}
+stats3 <- makestats(thetatry)
+colnames(stats3) <- c("heures travaillées","utilité","revenu brut","taxes et transferts", "revenu net")
+summary(stats3)
+```
+
+ 
+
+Voici l'histogramme des heures travaillées et des revenus nets.
+
+```{r}
+hist(stats3[,1], main = "Distribution des heures travaillées")
+hist(stats3[,5], main = "Distribution des revenus nets")
+```
+
+Calculons le coefficient de Gini pour la réforme 3: 
+
+```{r eval=FALSE, echo=TRUE}
+Gini3 <-Gini(x=stats3[,5], n=wght)
+Gini3
+```
 
 # 8. Comparaisons des réformes
 
-## Bibliographie 
+Les réformes sont comparées sur la base des heures travaillées:
+
+```{r fig3, fig.width = 7, fig.height=8}
+# essai 1 graphiques en violon
+vioplot(stats0[,1],
+        stats1[,1],
+        stats2[,1],
+        stats3[,1], names = c("De base", "RMG", "Prime au travail", "RMG et PT"),
+        col=c("lightcyan","cyan1","cyan4", "seagreen"), lty="blank")
+
+# essai 2 graphiques superposes
+par(mfrow=c(4,1))
+hist(stats0[,1], col="lightcyan", lty="blank")
+hist(stats1[,1], col="cyan1", lty="blank")
+hist(stats2[,1], col="cyan4", lty="blank")
+hist(stats3[,1], col="seagreen", lty="blank")
+
+```
+
+Voici l'effet sur les revenus nets:
+
+```{r fig3, fig.width = 7, fig.height=8}
+# essai 1 graphiques en violon
+vioplot(stats0[,5],
+        stats1[,5],
+        stats2[,5],
+        stats3[,5], names = c("De base", "RMG", "Prime au travail", "RMG et PT"),
+        col=c("lightcyan","cyan1","cyan4", "seagreen"), lty="blank")
+
+# essai 2 graphiques superposes
+par(mfrow=c(4,1))
+hist(stats0[,5], col="lightcyan", lty="blank")
+hist(stats1[,5], col="cyan1", lty="blank")
+hist(stats2[,5], col="cyan4", lty="blank")
+hist(stats3[,5], col="seagreen", lty="blank")
+
+```
+
+Variations de l'indice de Gini, pondéré pour les poids populationnels
+
+```{r}
+listeGini <- c(Gini0, Gini1, Gini2, Gini3)
+barplot(listeGini,
+        names.arg=c("De base", "RMG", "Prime au travail", "RMG et PT"),
+        col=c("lightcyan","cyan1","cyan4", "seagreen"), ylim = c(0, 0.20),border=NA)
+```
+
+## Conclusions
+En bref, 
+
+# Bibliographie 
 
 BOCCANFUSO, Dorothée, COUSINEAU, Jean-Michel, FONSECA, Raquel, Le revenu minimum garanti : une utopie? Une inspiration pour le Québec, sommaire, rapport final du comité d'experts sur le revenu minimum garanti, Ministère du travail, de l'emploi et de la solidarité sociale, 2017, document disponible à l'adresse < https://www.mtess.gouv.qc.ca/grands-dossiers/revenu_min_garanti.asp >, consulté le 27 mars 2020
 
