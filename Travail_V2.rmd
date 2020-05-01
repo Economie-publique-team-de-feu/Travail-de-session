@@ -1189,7 +1189,7 @@ Variations de l'indice de Gini, pondéré pour les poids populationnels
 listeGini <- c(Gini0, Gini1, Gini2, Gini3)
 barplot(listeGini,
         names.arg=c("De base",  "PT", "RMG","RMG et PT"),
-        col=c("magenta4", "dark turquoise", "seagreen", "blue2"), ylim = c(1, 0.25),border=NA)
+        col=c("magenta4", "dark turquoise", "seagreen", "blue2"), ylim = c(0.1, 0.25),border=NA)
 ```
 
 ## Conclusions
