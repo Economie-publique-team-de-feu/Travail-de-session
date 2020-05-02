@@ -28,8 +28,7 @@ Dans ce travail, nous proposons des ajustements au modèle de simulation de l'of
 
 3. Une combinaison des deux réformes 
 
-Comme mentionné, les effets de ces réformes seront comparés sur la base de l'offre de travail, de la distribution des revenus dans la société et, si le temps et les données nous le permettent, l'effet en bref sur les finances publiques.
-
+Comme mentionné, les effets de ces réformes seront comparés sur la base de l'offre de travail, de la distribution des revenus dans la société et sur les taux marginaux effectifs d'imposition.
 
 # 0. Chargement des librairies
 
@@ -243,11 +242,8 @@ La liste des principaux transferts fédéraux et provinciaux est tirée de l’�
 Les abréviations suivantes ont été utilisées : 
 
 * *ps* : personne seule
-
 * *c* : couple sans enfants
-
 * *fm* : famille monoparentale
-
 * *ce* : couple avec enfants
 
 ```{r}
