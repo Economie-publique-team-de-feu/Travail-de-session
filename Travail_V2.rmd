@@ -1192,7 +1192,7 @@ vioplot(stats0[,5],
 
 Dans les trois réformes proposées, nous observons une augmentation du revenu net médian. Cependant, la plus grande différence est observée lorsque la réforme du revenu minimum garanti combiné à la subvention salariale est appliquée. Cela est logique et dû au seuil minimum de revenu établi par cette réforme. La subvention salariale à elle seule a tout de même une augmentation de la médiane du revenu intéressante et un amincissement de la queue inférieure de la courbe, ce qui est intuitif et confirme la théorie comme quoi une subvention salariale stimule le travail.
 
-Voici l'effet sur les taux marginaux effectifs d'imposition:
+Voici l'effet sur les taux marginaux effectifs d'imposition de chaque réforme proposée:
 
 ```{r}
 plot(outtme0[[1]], outtme0[[2]], main = "TMEI, ensemble des réformes", type = "l", lty = 2,lwd=2, 
@@ -1204,7 +1204,10 @@ legend("bottomright", legend=c("Base", "Subvention salariale", "Revenu minimum g
        col=c("magenta4", "dark turquoise", "seagreen", "blue2"), lty=c(2,2,1,1), cex=0.8, box.lty=0)
 ```
 
-Variations de l'indice de Gini, pondéré pour les poids populationnels
+Comparativement au scénario de base, nous observons que le mur de pauvreté causé par le programme d’aide sociale disparaît avec le revenu minimum garanti. Cette situation est intuitive puisque le revenu minimum est offert universellement aux agents peu importe leur revenu, il n’est donc pas soumis à des pénalités en fonction du revenu gagné. L’évolution par la suite est moins rapide, mais rattrape le scénario initial à partir d’un peu plus de 100 000\$ de revenus. Un autre élément intéressant est lors de l’application de la subvention salariale. Celle-ci entraîne une diminution parallèle du TMEI comparativement aux scénarios qui ne l’incluent pas. Cette diminution est causée principalement par le fait que, tel que mentionné plus haut, la subvention salariale est un transfert universel qui s’applique à tout niveau de revenu, entraînant ainsi cette diminution parallèle observée des taxes perçues. 
+
+
+Finalement, voici l'ensemble des indices de Gini, pondérés pour les poids populationnels:
 
 ```{r, fig49,fig.width = 4.5, fig.height=3 }
 listeGini <- c(Gini0, Gini1, Gini2, Gini3)
@@ -1213,8 +1216,18 @@ barplot(listeGini,
         col=c("magenta4", "dark turquoise", "seagreen", "blue2"), ylim = c(0, 0.25),border=NA)
 ```
 
+Tel que mentionné plus haut, les indices de Gini obtenus dans les simulations sont plus bas que le réel coefficient au Québec, puisque celui-ci a une valeur de 0,26, alors que notre valeur maximale est de 0,209. Cela dit, en comparant les indices de Gini obtenus par les quatre situations comparées, il est possible de constater que la réforme qui offre le coefficient de Gini le plus faible est la subvention salariale, alors que le plus élevé est observé dans la situation actuelle. Cependant, les différences entre les indices sont minimes, variant de 0,01 au maximum. Ce faisant, il serait approprié de conclure que les réformes proposées ne changent pas significativement l'inégalité des revenus. 
+
+
 ## Conclusions
-En bref, 
+Les résultats de nos simulations démontrent l’arbitrage entre des prestations généreuses et les effets désincitatifs des réformes. Le revenu minimum garanti a un effet considérablement plus grand sur le salaire médian que la subvention salariale. Cependant, le revenu minimum garanti a un fort pouvoir désincitatif sur l’offre de travail, surtout comparativement à la subvention salariale, qui elle agit comme un fort incitatif. La troisième réforme, qui combine ces deux politiques, a un effet encore plus grand sur le revenu médian tout en atténuant légèrement le découragement de l’offre de travail occasionné par le revenu minimum garanti. Par contre, cette combinaison des deux réformes comporte un grand coût pour l’État, la troisième composante de ce trilemme. 
+
+Une force de notre analyse est qu'elle repose sur un modèle d’offre de travail dérivé de la théorie économique. La calibration de notre modèle à partir des données du *Labour Force Survey* pour le Québec par la méthode des moments généralisés montre des résultats très près de ceux observés dans les données. 
+
+D’un autre côté, notre analyse comporte des limites, surtout au niveau des hypothèses simplificatrices effectuées en cours de route. La plupart des transferts ont dû être simplifiés afin d’être codés sans casse-tête ou compte tenu des variables disponibles. Par ailleurs, l’exclusion des étudiants de notre analyse rend l’échantillon légèrement différent de la population québécoise. De plus, nous avons supposé que les données manquantes étaient distribuées aléatoirement afin de les supprimer de notre analyse. Cette hypothèse est difficile à défendre puisque les individus avec des valeurs manquantes diffèrent du reste de la population. Ces deux éléments justifient les écarts observés entre les données et les chiffres officiels, notamment en termes de chômage et d’indice de Gini. Nos réformes ont aussi de très faibles impacts sur les indices de Gini parce qu’une partie des revenus les plus faibles (exclusion des étudiants et absence des données de chômage) et les plus élevés (pour raison de confidentialité des données) sont exclus de l’analyse. 
+
+Pour terminer, une modélisation plus exhaustive des transferts, incluant notamment les pensions canadiennes de la Sécurité de vieillesse pour les individus de 65 ans et plus et davantage de détails sur les âges et sur le nombre d’enfants permettrait d’enrichir cette analyse. Les résultats principaux de notre analyse permettent tout de même de confirmer les tendances répertoriées dans la littérature sur les effets des mesures d’allègement de la pauvreté à la fois sur l’offre de travail et sur la distribution des revenus, et mettent en lumière l’arbitrage nécessaire entre la majoration des transferts de base, l’amélioration des incitatifs au travail et la saine gestion des finances de l’État.  
+
 
 # Bibliographie 
 
