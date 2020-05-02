@@ -1220,7 +1220,14 @@ Tel que mentionné plus haut, les indices de Gini obtenus dans les simulations s
 
 
 ## Conclusions
-En bref, 
+Les résultats de nos simulations démontrent l’arbitrage entre des prestations généreuses et les effets désincitatifs des réformes. Le revenu minimum garanti a un effet considérablement plus grand sur le salaire médian que la subvention salariale. Cependant, le revenu minimum garanti a un fort pouvoir désincitatif sur l’offre de travail, surtout comparativement à la subvention salariale, qui elle agit comme un fort incitatif. La troisième réforme, qui combine ces deux politiques, a un effet encore plus grand sur le revenu médian tout en atténuant légèrement le découragement de l’offre de travail occasionné par le revenu minimum garanti. Par contre, cette combinaison des deux réformes comporte un grand coût pour l’État, la troisième composante de ce trilemme. 
+
+Une force de notre analyse est qu'elle repose sur un modèle d’offre de travail dérivé de la théorie économique. La calibration de notre modèle à partir des données du *Labour Force Survey* pour le Québec par la méthode des moments généralisés montre des résultats très près de ceux observés dans les données. 
+
+D’un autre côté, notre analyse comporte des limites, surtout au niveau des hypothèses simplificatrices effectuées en cours de route. La plupart des transferts ont dû être simplifiés afin d’être codés sans casse-tête ou compte tenu des variables disponibles. Par ailleurs, l’exclusion des étudiants de notre analyse rend l’échantillon légèrement différent de la population québécoise. De plus, nous avons supposé que les données manquantes étaient distribuées aléatoirement afin de les supprimer de notre analyse. Cette hypothèse est difficile à défendre puisque les individus avec des valeurs manquantes diffèrent du reste de la population. Ces deux éléments justifient les écarts observés entre les données et les chiffres officiels, notamment en termes de chômage et d’indice de Gini. Nos réformes ont aussi de très faibles impacts sur les indices de Gini parce qu’une partie des revenus les plus faibles (exclusion des étudiants et absence des données de chômage) et les plus élevés (pour raison de confidentialité des données) sont exclus de l’analyse. 
+
+Pour terminer, une modélisation plus exhaustive des transferts, incluant notamment les pensions canadiennes de la Sécurité de vieillesse pour les individus de 65 ans et plus et davantage de détails sur les âges et sur le nombre d’enfants permettrait d’enrichir cette analyse. Les résultats principaux de notre analyse permettent tout de même de confirmer les tendances répertoriées dans la littérature sur les effets des mesures d’allègement de la pauvreté à la fois sur l’offre de travail et sur la distribution des revenus, et mettent en lumière l’arbitrage nécessaire entre la majoration des transferts de base, l’amélioration des incitatifs au travail et la saine gestion des finances de l’État.  
+
 
 # Bibliographie 
 
