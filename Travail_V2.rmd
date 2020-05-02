@@ -24,7 +24,7 @@ Dans ce travail, nous proposons des ajustements au modèle de simulation de l'of
 
 1. L'instauration d'un revenu minimum garanti 
 
-2. La mise en place d'une prime à l'emploi 
+2. La mise en place d'une subvention salariale
 
 3. Une combinaison des deux réformes 
 
@@ -415,13 +415,13 @@ transferts <- function(inc, i){
   }
   
 
-  # Reforme #1: Prime a l'emploi
+  # Reforme #1: subvention salariale
 # Inspirée d'une des options analysées par Clavet et al. (2013) Source : https://www.utpjournals.press/doi/abs/10.3138/CPP.39.4.491
   
   if ((inc / wage[i])>30*weeks) {
-    PrimeEmploi <- (inc/wage[i]-(30*weeks))*3 
+    subvention <- (inc/wage[i]-(30*weeks))*3 
   } else {
-    PrimeEmploi <- 0 
+    subvention <- 0 
   }
   
 
@@ -460,13 +460,13 @@ transferts <- function(inc, i){
     transferts <- TPS_TVH + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite + PrimeTravail
   } else if (reforme == 1) {
     assign("asc", 1, envir = .GlobalEnv)
-    transferts <- TPS_TVH + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite + PrimeEmploi
+    transferts <- TPS_TVH + AllocationTravailleur + ACE + AllocationFamille + CreditSolidarite + subvention
   } else if (reforme == 2) {
     assign("asc", 0, envir = .GlobalEnv)
     transferts <- rmg
   } else if (reforme == 3 ) {
     assign("asc", 0, envir = .GlobalEnv)
-    transferts <- rmg + PrimeEmploi
+    transferts <- rmg + subvention
   }
 
   return(transferts)
@@ -967,12 +967,12 @@ Notre coefficient de Gini pondéré de `r Gini0` est beaucoup plus faible (plus 
 À partir de ce portrait de la situation de base, il est possible d'introduire des réformes et de visualiser les changements d'offre de travail et de distribuution de revenus qui vont s'opérer. 
 
 
-# 5. Réforme #1: Prime à l'emploi
+# 5. Réforme #1: Subvention salariale
 
 On a donc une valeur de $\theta$ qui permet de répliquer les moments observés dans les données et de donner quelques statistiques descriptives de l'économie simulée. On peut donc maintenant commencer à faire des analyses de réformes.
 
-La prime à l’emploi est de 3\$/h pour tout individu ayant trouvé un emploi et travaillant au moins 30h par semaine. La prime commence à s’appliquer à 30h de travail durant la semaine. Elle est prise de l’article de Clavet et al. (2013). De cet article, les auteurs font l’hypothèse que la stimulation de l’emploi est la meilleure façon de sortir les agents de la pauvreté matérielle. Ce type d’aide aux travailleurs aura pour effet, théoriquement, d’encourager davantage la participation au travail des individus ayant les plus faibles salaires horaires.
-Encore une fois les détails de la réforme sont codés dans la fonction `transferts`. Elle assume que les transferts habituels sont maintenus, à l’exception de la prime pour les travailleurs (basée sur le salaire annuel) qui est remplacée par la prime au travail (subvention de 3$ de l’heure). 
+La subvention salariale est de 3\$/h pour tout individu ayant trouvé un emploi et travaillant au moins 30h par semaine. La subvention salariale à s’appliquer à 30h de travail durant la semaine. Elle est prise de l’article de Clavet et al. (2013). De cet article, les auteurs font l’hypothèse que la stimulation de l’emploi est la meilleure façon de sortir les agents de la pauvreté matérielle. Ce type d’aide aux travailleurs aura pour effet, théoriquement, d’encourager davantage la participation au travail des individus ayant les plus faibles salaires horaires.
+Encore une fois les détails de la réforme sont codés dans la fonction `transferts`. Elle assume que les transferts habituels sont maintenus, à l’exception de la prime pour les travailleurs (basée sur le salaire annuel) qui est remplacée par la subvention salariale de 3$ de l’heure. 
 
 ```{r}
 reforme <- 1
@@ -980,14 +980,14 @@ reforme <- 1
 
 ### Modification des TMEI:
 
-Pour un couple avec enfant (modifier le 3e terme *i* pour obtenir les TMEI des autres types de ménages), le graphique suivant prédit les taux marginaux effectifs d'imposition. Ils sont très similaires à ceux présentés dans le scénario de base, incluant le mur de l'aide sociale dans les premières centaines de dollars de revenu. Une particularité est que puisque la prime au travail est universelle, elle continue de s'appliquer dans les plus hautes tranches de revenu et diminue le TMEI pour tous de façon parallèle au scénario de base à partir de 40000\$ environ. 
+Pour un couple avec enfant (modifier le 3e terme *i* pour obtenir les TMEI des autres types de ménages), le graphique suivant prédit les taux marginaux effectifs d'imposition. Ils sont très similaires à ceux présentés dans le scénario de base, incluant le mur de l'aide sociale dans les premières centaines de dollars de revenu. Une particularité est que puisque la subvention salariale est universelle, elle continue de s'appliquer dans les plus hautes tranches de revenu et diminue le TMEI pour tous de façon parallèle au scénario de base à partir de 40000\$ environ. 
 
 ```{r }
 outtme1 <- tme(100,250000,1)
 ```
 
 ## Simulations du modèle d'offre de travail
-On peut donc utiliser le modèle pour voir les changements anticipés sur les valeurs des moments.Comme anticipé, la proportion de gens ne travaillant pas a diminuée d'environ 8% à 5% avec la prime au travail, et ce, même en abolissant l'ancienne allocation pour les travailleurs. La politique atteint l'effet souhaitée d'encourager les gens à travailler à temps plein, y compris pour les femmes. Celles-ci travaillent en moyenne 72 heures de plus par année avec la réforme 1. 
+On peut donc utiliser le modèle pour voir les changements anticipés sur les valeurs des moments.Comme anticipé, la proportion de gens ne travaillant pas a diminuée d'environ 8% à 5% avec la subvention salariale, et ce, même en abolissant l'ancienne allocation pour les travailleurs. La politique atteint l'effet souhaitée d'encourager les gens à travailler à temps plein, y compris pour les femmes. Celles-ci travaillent en moyenne 72 heures de plus par année avec la réforme 1. 
 
 ```{r}
 print(simhours(thetatry))
@@ -1003,7 +1003,7 @@ kable(summary(stats1))
 
 En particulier, ici on voit que tous se sont mis à travailler. C'est une conséquence directe de l'hypothèse sur l'utilité: sans aide sociale, ne pas travailler implique une consommation nulle et une utilité de -Infini. Les individus sont donc prêts à tout pour arriver à consommer. 
 
-Voici l'histogramme des heures travaillées et des revenus nets et des TMEI. La prime  au travail contribue à augmenter l'emploi, comme il est possible de le voir dans les graphiques (4000 travailleurs à temps plein vs 3000 sans prime au travail). La quantité de gens qui travaillent de 2000 à 2500 heures est également plus élevée que dans le programme de base, ce qui veut dire que le nombre de personnes qui travaillent de 40 heures à 50 heures par semaine a augmenté. De ce fait, plusieurs personnes peuvent bénéficier de la prime: elle semble remplir son objectif. Cela est appuyé par le fait que moins de personnes ont choisi de travailler moins de 1000 heures, bien que cet effet est difficile à évaluer parce qu'il semble minime. De plus, il semble y avoir plus de personnes qui ont un revenu net plus élevé considérant que la distribution des revenus nets est plus asymétrique à droite que dans la situation de base.
+Voici l'histogramme des heures travaillées et des revenus nets et des TMEI. La subvention salariale contribue à augmenter l'emploi, comme il est possible de le voir dans les graphiques (4000 travailleurs à temps plein vs 3000 sans subvention salariale). La quantité de gens qui travaillent de 2000 à 2500 heures est également plus élevée que dans le programme de base, ce qui veut dire que le nombre de personnes qui travaillent de 40 heures à 50 heures par semaine a augmenté. De ce fait, plusieurs personnes peuvent bénéficier de la prime: elle semble remplir son objectif. Cela est appuyé par le fait que moins de personnes ont choisi de travailler moins de 1000 heures, bien que cet effet est difficile à évaluer parce qu'il semble minime. De plus, il semble y avoir plus de personnes qui ont un revenu net plus élevé considérant que la distribution des revenus nets est plus asymétrique à droite que dans la situation de base.
 
 ```{r}
 par(mfrow=c(2,2))
@@ -1066,7 +1066,7 @@ kable(summary(stats2))
 Au dela des heures travaillées et du revenu gagné, on constate que l'utilité minimale des individus a augmenté. Également, même pour l'individu moyen, les transferts (RMG) surpassent les taxes payées. Le revenu minimal atteint 19012\$, soit plus du double de celui du scénario de base. Cette hause de revenu pour les individus les plus défavorisés permet de mieux combler les besoins de base. 
 
 
-Voici l'histogramme des heures travaillées et des revenus bruts et nets. L'effet notable dans la distribution des heures travaillées est qu'un plus grand nombre de personnes ont choisi de ne pas travailler ou de travailler moins, avec pour résultat qu'un nombre significativement moins élevé de personnes ont choisi de travailler 1500 heures ou plus par rapport à l'option actuelle. C'est un résultat attendu dans le cas de l'instauration d'un revenu minimum puisque les gens gagnent naturellement plus en transferts, suffisamment pour être capable de moins travailler et de pouvoir tout de même subvenir à leurs besoins. Les individus sont ainsi capables de maintenir leur consommation avec moins de travail, ce qui améliore leur utilité pour un niveau de travail donné. Ayant une préférence pour le loisir, ces individus choisissent de moins travailler.  Ensuite, on remarque qu'un nombre minime de personnes gagnent moins de 20 000\$ par année, ce qui est normal considérant que le transfert de base pour quelqu'un qui ne travaille pas et qui a entre 20 et 64 ans est de 20 333\$ par année. De façon générale, la distribution est plus centrée autour de 50 000\$ et le revenu médian a augmenté. Ce sont des résultats plausibles du revenu minimum garanti retrouvés dans la littérature. 
+Voici l'histogramme des heures travaillées et des revenus bruts et nets. L'effet notable dans la distribution des heures travaillées est qu'un plus grand nombre de personnes ont choisi de ne pas travailler ou de travailler moins, avec pour résultat qu'un nombre significativement moins élevé de personnes ont choisi de travailler 1500 heures ou plus par rapport à l'option actuelle. C'est un résultat attendu dans le cas de l'instauration d'un revenu minimum puisque les gens gagnent naturellement plus en transferts, suffisamment pour être capables de moins travailler et de pouvoir tout de même subvenir à leurs besoins. Les individus sont ainsi capables de maintenir leur consommation avec moins de travail, ce qui améliore leur utilité pour un niveau de travail donné. Ayant une préférence pour le loisir, ces individus choisissent de moins travailler.  Ensuite, on remarque qu'un nombre minime de personnes gagnent moins de 20 000\$ par année, ce qui est normal considérant que le transfert de base pour quelqu'un qui ne travaille pas et qui a entre 20 et 64 ans est de 20 333\$ par année. De façon générale, la distribution est plus centrée autour de 50 000\$ et le revenu médian a augmenté. Ce sont des résultats plausibles du revenu minimum garanti retrouvés dans la littérature. 
 
 ```{r}
 par(mfrow=c(2,2))
@@ -1089,9 +1089,9 @@ Gini2
 ```
 
 
-# 7. Réforme #3: Combinaison de RMG et prime à l'emploi
+# 7. Réforme #3: Combinaison de RMG et subvention salariale
 
-Dans cette réforme, nous combinons les réformes 1 et 2, soient un revenu minimum garanti et une prime au travail. Tous les autres transferts, incluant l'aide sociale sont supprimés. 
+Dans cette réforme, nous combinons les réformes 1 et 2, soient un revenu minimum garanti et une subvention salariale. Tous les autres transferts, incluant l'aide sociale sont supprimés. 
 
 ```{r}
 reforme <- 3
@@ -1099,7 +1099,7 @@ reforme <- 3
 
 ### Modification des TMEI:
 
-Pour un couple avec enfant, le taux marginal effectif d'imposition est encore une fois simplifié par rapport au scénario de base. Puisque l'aide sociale a été coupée, il y a la disparition du mur de l'aide sociale, où les gens sont taxés à un taux pouvant être supérieur à 1. À la place, on observe un taux marginal effectif d'imposition qui est progressif dans son ensemble, mais décalé à la baisse en raison de la prime au travail qui rend plus généreux encore les transferts, tous niveaux de revenus confondus.
+Pour un couple avec enfant, le taux marginal effectif d'imposition est encore une fois simplifié par rapport au scénario de base. Puisque l'aide sociale a été coupée, il y a la disparition du mur de l'aide sociale, où les gens sont taxés à un taux pouvant être supérieur à 1. À la place, on observe un taux marginal effectif d'imposition qui est progressif dans son ensemble, mais décalé à la baisse en raison de la subvention salariale qui rend plus généreux encore les transferts, tous niveaux de revenus confondus.
 
 ```{r}
 outtme3 <- tme(100,250000,1)
@@ -1111,7 +1111,7 @@ On peut donc utiliser le modèle pour voir les changements anticipés sur les va
 ```{r}
 print(simhours(thetatry))
 ```
-L'ajout de la prime au travail mitige un peu les effets dissuadifs du revenu minimal garanti sur l'offre du travail, avec 19% de personnes ne travaillant pas. 
+L'ajout de la subvention salariale mitige un peu les effets dissuadifs du revenu minimal garanti sur l'offre du travail, avec 19% de personnes ne travaillant pas. 
 
 On peut aussi voir les autres statistiques prédites:
 
@@ -1140,7 +1140,7 @@ plot(outtme3[[1]], outtme3[[2]], main = "TMEI, réforme 3", type = "l", lty = 1,
 
 Concernant la distribution des heures travaillées, une constatation majeure est que le nombre de personnes qui ne travaillent pas a beaucoup augmenté par rapport à la situation actuelle, et cet effet est visible jusqu'à 1500 heures de travail. L'effet du revenu minimum garanti se fait sentir puisque les gens préfèrent avoir plus de loisir tout en sachant qu'ils peuvent réduire leurs heures et tout de même vivre à un niveau convenable en raison du revenu minimum garanti. 
 
-Ensuite, la distribution des revenus nets s'est déplacée pour être centrale autour de 50 000\$, ce qui est beaucoup plus élevé que dans le cas de la situation actuelle. Également, un effet majeur du revenu minimum garanti est qu'il y a un nombre marginal de personnes qui gagnent moins de 20 000\$ par année puisque le transfert minimum du revenu minimum garanti est de 20 333\$ par année. L'effet de la prime au travail se fait peu sentir tant dans la distribution que sur le revenu des individus, ce qui est espéré puisque le transfert du revenu minimum garanti est plus attirant et potentiellement plus élevé que celui pouvant être fourni par la prime au travail, d'autant plus que les individus doivent fournir un effort significatif pour obtenir cette prime, donc pour cette raison son effet est plus faible. 
+Ensuite, la distribution des revenus nets s'est déplacée pour être centrale autour de 50 000\$, ce qui est beaucoup plus élevé que dans le cas de la situation actuelle. Également, un effet majeur du revenu minimum garanti est qu'il y a un nombre marginal de personnes qui gagnent moins de 20 000\$ par année puisque le transfert minimum du revenu minimum garanti est de 20 333\$ par année. L'effet de la subvention salariale se fait peu sentir tant dans la distribution que sur le revenu des individus, ce qui est espéré puisque le transfert du revenu minimum garanti est plus attirant et potentiellement plus élevé que celui pouvant être fourni par la subvention salariale, d'autant plus que les individus doivent fournir un effort significatif pour obtenir cette prime, donc pour cette raison son effet est plus faible. 
 
 
 
@@ -1153,6 +1153,8 @@ Gini3
 
 # 8. Comparaisons des réformes
 
+Les réformes sont comparées en utilisant des « graphiques en violons ». La largeur de la forme représente la fréquence (densité) d'observation pour différentes valeurs d'heures travaillées et de revenus nets. Le point central représente la médiane de la distribution et la barre représente l'intervalle interquartile. Ils permettent de comparer rapidement plusieurs distributions de manière élégante. 
+
 Les réformes sont comparées sur la base des heures travaillées:
 
 ```{r fig47, fig.width = 6, fig.height=6}
@@ -1160,7 +1162,7 @@ Les réformes sont comparées sur la base des heures travaillées:
 vioplot(stats0[,1],
         stats1[,1],
         stats2[,1],
-        stats3[,1], names = c("Base",  "PT","RMG", "RMG et PT"),
+        stats3[,1], names = c("Base",  "SubvSal","RMG", "RMG et SubvSal"),
         col=c("magenta4", "dark turquoise", "seagreen", "blue2"), lty="blank",
         horizontal = T, 
         xlab = "Heures travaillées annuelles",
@@ -1170,6 +1172,9 @@ vioplot(stats0[,1],
 
 ```
 
+En comparant au scénario de base, nous observons que la subvention salariale de 3\$ par heure travaillée à partir de la trentième entraîne une augmentation des heures travaillées. Aussi, il y a un déplacement des individus qui travaillaient moins de 1000 heures vers ceux qui travaillent plus de 2000 heures par année, entraînant une augmentation de la médiane d’heures travaillées. Cependant, lorsque les mesures sont remplacées par le revenu minimum garanti, la quantité de personnes décidant de ne plus travailler augmente de façon importante et diminue le nombre d’heures travaillées dans les portions plus élevées. Elles se concentrent dans la partie inférieure des 2000 heures travaillées par année. L’ajout de la subvention salariale au revenu minimum garanti permet une augmentation des heures travaillées et un aplanissement de la courbe. Dans ce cas, la majorité des individus travaille toujours moins de 2000 heures. Dans l’ensemble, la mesure qui favorise le plus l’offre de travail est, sans surprise, la subvention salariale, soit la réforme 1.
+
+
 Voici l'effet sur les revenus nets:
 
 ```{r fig48, fig.width = 6, fig.height=6}
@@ -1177,13 +1182,15 @@ Voici l'effet sur les revenus nets:
 vioplot(stats0[,5],
         stats1[,5],
         stats2[,5],
-        stats3[,5], names = c("Base",  "PT","RMG", "RMG et PT"),
+        stats3[,5], names = c("Base",  "SubvSal","RMG", "RMG et SubvSal"),
         col=c("magenta4", "dark turquoise", "seagreen", "blue2"), lty="blank",ylim = c(0, 150000),
         xlab = "Revenu net annuel ($)",
         horizontal = TRUE,
         main = "Distribution des revenus nets annuels")
 
 ```
+
+Dans les trois réformes proposées, nous observons une augmentation du revenu net médian. Cependant, la plus grande différence est observée lorsque la réforme du revenu minimum garanti combiné à la subvention salariale est appliquée. Cela est logique et dû au seuil minimum de revenu établi par cette réforme. La subvention salariale à elle seule a tout de même une augmentation de la médiane du revenu intéressante et un amincissement de la queue inférieure de la courbe, ce qui est intuitif et confirme la théorie comme quoi une subvention salariale stimule le travail.
 
 Voici l'effet sur les taux marginaux effectifs d'imposition:
 
@@ -1193,7 +1200,7 @@ plot(outtme0[[1]], outtme0[[2]], main = "TMEI, ensemble des réformes", type = "
 lines(outtme1[[1]], outtme1[[2]], type = "l", lty = 2, lwd=2, col= "dark turquoise")
 lines(outtme2[[1]], outtme2[[2]], type = "l", lty = 1, col= "seagreen")
 lines(outtme3[[1]], outtme3[[2]], type = "l", lty = 1, col= "blue2")
-legend("bottomright", legend=c("Base", "Prime travail", "Revenu minimum garanti", "RMG et PT"),
+legend("bottomright", legend=c("Base", "Subvention salariale", "Revenu minimum garanti", "RMG et PT"),
        col=c("magenta4", "dark turquoise", "seagreen", "blue2"), lty=c(2,2,1,1), cex=0.8, box.lty=0)
 ```
 
@@ -1202,7 +1209,7 @@ Variations de l'indice de Gini, pondéré pour les poids populationnels
 ```{r, fig49,fig.width = 4.5, fig.height=3 }
 listeGini <- c(Gini0, Gini1, Gini2, Gini3)
 barplot(listeGini,
-        names.arg=c("Base",  "PT", "RMG","RMG et PT"),
+        names.arg=c("Base",  "SubvSal", "RMG","RMG et SubSal"),
         col=c("magenta4", "dark turquoise", "seagreen", "blue2"), ylim = c(0, 0.25),border=NA)
 ```
 
