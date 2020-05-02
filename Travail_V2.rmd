@@ -28,7 +28,7 @@ Dans ce travail, nous proposons des ajustements au modèle de simulation de l'of
 
 3. Une combinaison des deux réformes 
 
-Comme mentionné, les effets de ces réformes seront comparés sur la base de l'offre de travail, de la distribution des revenus dans la société et, si le temps et les données nous le permettent, l'effet en bref sur les finances publiques.
+Comme mentionné, les effets de ces réformes seront comparés sur la base de l'offre de travail, de la distribution des revenus dans la société et l'indice de Gini comme mesure des inégalités.
 
 
 # 0. Chargement des librairies
@@ -63,7 +63,7 @@ $$ \alpha_{1i} =\beta_0 + \beta_1\ln(age) + \beta_2\ln(age)^2 + \beta_3(prescola
 
 Où *prescolaire>0* est une variable indicatrice égale à 1 si l'individu a au moins un enfant d'âge préscolaire à sa charge, *sexe* est une indicatrice égale à 1 si l'individu est une femme et *educ* reflète le niveau d'éducation. 
 
-Pour coder la fonction d'utilité, la vecteur de coefficients pour les fonctions *Utilite* et *alpha1*, *theta*, est noté $\theta = (\beta_0, \beta_1, \beta_2, \beta_3, \beta_4, \beta_5, \alpha_2, \alpha_3, \alpha_4, \gamma_0, \gamma_f, \sigma_L)$ où $\sigma^2_L$ est l'écart-type des heures travaillées. .
+Pour coder la fonction d'utilité, la vecteur de coefficients pour les fonctions `Utilite` et `alpha1`, `theta`, est noté $\theta = (\beta_0, \beta_1, \beta_2, \beta_3, \beta_4, \beta_5, \alpha_2, \alpha_3, \alpha_4, \gamma_0, \gamma_f, \sigma_L)$ où $\sigma^2_L$ est l'écart-type des heures travaillées. .
 
 
 ```{r}
@@ -79,7 +79,7 @@ alpha1 <- function(i, theta){
 }
 ```
 
-L'utilité est donnée par une fonction qui prend comme argument l'individu *i*, le nombre d'heures travaillées *L* et le vecteur de coefficients *theta*. Elle imbrique la fonction *alpha1* qui renvoie le coefficient $\alpha_{1i}$, le coefficient de préférence pour le loisir, en fonction des caractéristiques individuelles. *Lmax* est le nombre d'heures travaillées maximales $\bar{L}$.
+L'utilité est donnée par une fonction qui prend comme argument l'individu *i*, le nombre d'heures travaillées *L* et le vecteur de coefficients `theta`. Elle imbrique la fonction `alpha1` qui renvoie le coefficient $\alpha_{1i}$, le coefficient de préférence pour le loisir, en fonction des caractéristiques individuelles. `Lmax` est le nombre d'heures travaillées maximales $\bar{L}$.
 
 ## Contrainte budgétaire
 
@@ -101,7 +101,7 @@ Y <- function(i,L){
 }
 ```
 
-La consommation est une fonction de l'individu *i* (son salaire) et du nombre d'heures travaillées *L*. Elle dépend aussi de la taxation du revenu par la fonction *itax*, qui sera définie à la section 2 sur les règles fiscales québécoises et canadiennes. 
+La consommation est une fonction de l'individu *i* (son salaire) et du nombre d'heures travaillées *L*. Elle dépend aussi de la taxation du revenu par la fonction `itax`, qui sera définie à la section 2 sur les règles fiscales québécoises et canadiennes. 
 
 ## Maximisation sous contrainte
 
@@ -131,7 +131,7 @@ umarginal <- function(i,incr,theta){
 ```
 
 
-La fonction prend comme arguments l'individu *i*, la variation discrète annuelle des heures qu'il est possible de travailler *incr*, le vecteur de préférences individuelles *beta* et le vecteur de paramètres de la fonction d'utilité *theta*. La fonction retourne une liste de trois éléments. Premièrement, *lsup*, le vecteur des heures travaillées auxquelles la fonction est évaluée. Deuxièmement, *deltautil* est l'utilité marginale entre $L$ et $L+1$ heures travaillées. Troisièmement, *util* est l'utilité évaluée à chaque valeur de *lsup*. Le nombres d'heures optimales travaillées *Loptimal* est simplement la valeur de *L* qui est associée à la plus grande utilité:
+La fonction prend comme arguments l'individu *i*, la variation discrète annuelle des heures qu'il est possible de travailler *incr*, le vecteur de préférences individuelles *beta* et le vecteur de paramètres de la fonction d'utilité `theta`. La fonction retourne une liste de trois éléments. Premièrement, `lsup`, le vecteur des heures travaillées auxquelles la fonction est évaluée. Deuxièmement, `deltautil` est l'utilité marginale entre $L$ et $L+1$ heures travaillées. Troisièmement, `util` est l'utilité évaluée à chaque valeur de `lsup`. Le nombres d'heures optimales travaillées `Loptimal` est simplement la valeur de *L* qui est associée à la plus grande utilité:
 
 ```{r}
 
@@ -479,6 +479,7 @@ transferts <- function(inc, i){
 ## Calcul du revenu net
 
 L’impôt est calculé selon la combinaison des paliers d'imposition fédéraux et provinciaux. Nous calculons le montant d’impôt prélevé sur le revenu avec la variation subie entre chaque palier d’imposition. Dans un but de simplification, nous ignorons la réforme de la CAQ concernant la taxation des heures supplémentaires travaillées.
+
 ```{r}
 
 itax <- function(inc,i){
@@ -541,7 +542,7 @@ Cette fonction de taxe prend en compte les paliers d'imposition fédéraux (*fed
 
 ## Taux marginaux effectifs d'imposition
 
-On peut directement voir l'impact de la fonction de taxe, sans hypothèses sur le comportement des individus, en regardant les taux marginaux effectifs d'imposition (TMEI). Le code suivant crée un graphique pour des incréments salariaux annuels de *incr* jusqu'à un revenu annuel de *imax* \$ pour chacun des 4 types de ménages (personne seule (ps), couple (c), famille monoparentale (fm) et couple avec enfants (ce)).
+On peut directement voir l'impact de la fonction de taxe, sans hypothèses sur le comportement des individus, en regardant les taux marginaux effectifs d'imposition (TMEI). Le code suivant crée un graphique pour des incréments salariaux annuels de`incr` jusqu'à un revenu annuel de `imax` \$ pour chacun des 4 types de ménages (personne seule (ps), couple (c), famille monoparentale (fm) et couple avec enfants (ce)).
 
 ```{r fig11}
 tme <- function(incr,imax,i){
@@ -615,7 +616,7 @@ corfact <- sum(lfsqc$FINALWT)/(sum(lfsqc$FINALWT)+sum(missingweight))
 wght <- as.numeric(lfsqc$FINALWT)/corfact # Calcule les poids approximatifs (les val. manquantes sont parfaitement aléatoires)
 ```
 
-À partir d'une base de données complète (sans valeurs manquantes), nous créons des vecteurs pour les variables du modèle théorique et celles essentielles à la modélisation des règles fiscales québécoises et canadiennes. Les données sont conservées en vecteurs séparés pour faciliter leur utilisation dans les différentes fonctions programmées. L'ensemble des variables explicatives est rassemblé dans la matrice *Xmat* afin de décrire rapidement l'ensemble des variables. 
+À partir d'une base de données complète (sans valeurs manquantes), nous créons des vecteurs pour les variables du modèle théorique et celles essentielles à la modélisation des règles fiscales québécoises et canadiennes. Les données sont conservées en vecteurs séparés pour faciliter leur utilisation dans les différentes fonctions programmées. L'ensemble des variables explicatives est rassemblé dans la matrice `Xmat` afin de décrire rapidement l'ensemble des variables. 
 
 ```{r}
 
@@ -739,7 +740,7 @@ où $\epsilon_{i,L}$ est également un terme aléatoire normalement distribué (
 erreurU <- replicate(n, matrix(rnorm((nincr)*nsim,0,1), nrow=nincr, ncol=nsim))
 ```
 
-Dans ce cas, nous re-codons les fonctions *alpha1*, *Utilite* et *umarginal* et *Loptimal* pour quelles incluent les termes d'erreur. 
+Dans ce cas, nous re-codons les fonctions `alpha1`, `Utilite` et `umarginal` et `Loptimal` pour quelles incluent les termes d'erreur. 
 
 ```{r}
 alphahat<- function(i,theta, sim){
@@ -831,7 +832,7 @@ $$
 où $\mathbb{E}Moments(\theta)$ est la moyenne des moments simulés pour différents tirages des $\varepsilon_i$ et $Moments$ sont les moments des données. La procédure est donc de minimiser $GMM(\theta)$. 
 
 
-Pour coder l'espérance des 12 moments simulés selon le vecteur de coefficients *theta*, nous utilisons la fonction *simhours*
+Pour coder l'espérance des 8 moments simulés selon le vecteur de coefficients *theta*, nous utilisons la fonction `simhours`: 
 
 
 ```{r}
@@ -855,7 +856,7 @@ distrhours <- function(theta){
 ```
 
 
-On peut donc maintenant lancer la calibration. L'objectif de la calibration est de minimiser la somme du carré des écarts entre  les moments simulés *moments* et les moments observés *rmoments*. L'optimisation de la fonction *distrhours* qui calcule les GMM se fait par la fonction *optim* qui cherche les valeurs de *theta* qui minimisent la fonction. Nous donnons un vecteur de départ arbitraire *thetahat* et l'algorithme d'optimisation retourne le vecteur de *thetahat* qui minimise les GMM. 
+On peut donc maintenant lancer la calibration. L'objectif de la calibration est de minimiser la somme du carré des écarts entre  les moments simulés *moments* et les moments observés *rmoments*. L'optimisation de la fonction `distrhours` qui calcule les GMM se fait par la fonction `optim` qui cherche les valeurs de *theta* qui minimisent la fonction. Nous donnons un vecteur de départ arbitraire `thetastart` et l'algorithme d'optimisation retourne le vecteur de `thetatry` qui minimise les GMM. Comme le processus d'optimisation numérique est long, une fois un premier vecteur de paramètres `thetatry` obtenu, nous avons ajusté manuellement les paramètres afin de diminuer la distance entre les moments, lorsque c'était possible. Le code suivant montre également la somme des écarts au carré avant et après le processus d'optimisation et montre une amélioration significative de la prédiction des moments simulés.
 
 ```{r}
 #Valeurs     de départ inspirés des paramètres de Clavet, Duclos et Lacroix
@@ -883,7 +884,7 @@ distrhours(thetatry) # gmm finaux
 
 ## Résultats de la calibration
 
-On voit la valeur calibrée de theta dans $out\$ par$ et la valeur de la fonction objective dans $out\$ value$. On peut maintenant voir les moments simulés (moyenne sur *nsim* simulations) et les moments réels avec le code suivant:
+On voit la valeur calibrée de $\theta$ dans `out$par` et la valeur de la fonction objective dans `out$value`. Par souci de rapidité dans les compilations subséquentes, nous avons enregistré le vecteur `thetatry` séparément. Il n'est pas adéquat d'interpréter les paramètres commes des coefficients économétriques, mais nous pouvons tout de même justifier les paramètres obtenus brièvement. L'age^2 et le fait d'avoir un enfant d'âge préscolaire diminuent l'utilité du loisir. Inversement, le fait d'être une femme et d'être éduqué augmentent l'utilité du loisir. Le loisir au carré diminue l'utilité, témoignant d'une saturation possible de l'utilité. Le revenu net  et le revenu net au carré influencement positivement l'utilité comme attendu. Nous identifions aussi un coût du travail, par le coefficient positif associé au fait de travailler 0 heures, de même qu'une préférence pour le fait de travailler à temps plein. On peut maintenant voir les moments simulés (moyenne sur *nsim* simulations) et les moments réels:
 
 ```{r }
 print(thetatry) # parametres finaux
@@ -891,7 +892,8 @@ print(simhours(thetatry)) # moments simules
 print(rmoments) #moments observes
 ```
 
-On voit donc que la majorité des moments sont bien simulés, sauf que modèle produit un moindre taux de chômage et une plus grande variance des heures travaillées. 
+La majorité des moments sont bien simulés. Par contre, le modèle produit une plus grande variance des heures travaillées (le 6^e moment). Autrement, la moyenne inconditionnelle des heures travaillées, les moyennes conditionnelles à l'age, au sexe et à l'éducation sont similaires entre les moments simulés et observés. La proportion des gens travaillant à temps plein et ne travaillant pas est également similaire dans les 2 cas. 
+
 Voici la distribution des heures travaillées observées et simulées: 
 
 ```{r}
@@ -901,7 +903,7 @@ hist(rhours, main = "Distribution des heures observées",
 
 ```
 
-On voit bien la masse importante juste avant 2000 heures de travail (i.e. 40 heures par semaine pendant 50 semaines), ce qui est intuitivement clair. Le code suivant nous donne un exemple de distribution des heures travaillées données par le modèle.
+La masse importante juste avant 2000 heures de travail (i.e. 40 heures par semaine pendant 50 semaines), est intuitive car la plupart des gens travaillent à temps plein. À 0 heures de travail, la distribution est plus élevée qu'une loi normale en raison du coût de travailler (transport, garde des enfants, etc.). Les paramètres permettent d'estimer les moment et par le fait même, de modéliser assez fidèlement la distribution inconditionnelle des heures travaillées. 
 
 ```{r}
 hres0<-simwork(thetatry, nsim)
@@ -912,7 +914,7 @@ hist(hres0, main = "Distribution des heures simulées, scénario de base",
 
 ## Résultats du scénario de base 
 
-Pour l'instant, la valeur estimée de $\theta$ nous donne une distribution des heures travaillées, ce qui nous permet de calculer les taxes, le bien-être et beaucoup d'autres variables. La matrice *stats0* contient les vecteurs d'heures de travail, d'utilité, de revenu brut, de taxes et transferts et de revenu brut pour les `r n` individus (moyennen sur `r nsim` simulations). 
+Pour l'instant, la valeur estimée de $\theta$ nous donne une distribution des heures travaillées, ce qui nous permet de calculer les taxes, le bien-être et beaucoup d'autres variables. La matrice `stats0` contient les vecteurs d'heures de travail, d'utilité, de revenu brut, de taxes et transferts et de revenu brut pour les `r n` individus (moyennen sur `r nsim` simulations). 
 
 ```{r}
 makestats <- function(theta){
@@ -936,6 +938,10 @@ colnames(stats0) <- c("heures travaillées","utilité","revenu brut","taxes et t
 kable(summary(stats0))
 ```
 
+Dans le scénario de base, une partie des gens ne travaille pas et obtient au minimum 9222$, soit l'équivalent de l'aide sociale et de quelques transferts. Le revenu médian net simulé est de 38048\$ par personne, ce qui est réaliste pour la réalité québécoise. 
+
+Nous illustrons graphiquement les distributions des variables d'intérêt. Comme mentionné, il y a une concentration d'heures travaillées juste sous 2000h par année. Les taxes et transferts normalisent la distribution des revenus bruts. Il est également possible de voir dans le second histogramme l'aire entre les deux courbes qui correspond aux revenus de taxation combinés des gouvernements fédéraux et provinciaux.
+
 ```{r include=FALSE}
 outtme0 <- tme(100,250000,1)
 ```
@@ -953,41 +959,43 @@ plot(outtme0[[1]], outtme0[[2]], main = "TMEI, réforme 0", type = "l", lty = 1,
      ylim = c(0,1.5), xlab = "Revenu", ylab = "TMEI")
 ```
 
-Calcul du coefficient de Gini sur le revenu net
+Nous calculons ensuite le coefficient de Gini, pondéré par les poids populationnels des individus, sur le revenu net afin de décrire les inégalités de richesse dans la société. 
 
 ```{r}
 Gini0 <- Gini(x=stats0[,5], n=wght)
 print(Gini0)
 ```
 
-Notre coefficient de Gini pondéré de `r Gini0` est beaucoup plus faible (plus égalitaire) que celui qui est calculé par Statistique Canada, qui était de 0.284 en 2016 (http://qceco.ca/n/3739). Sans avoir à réfléter parfaitement la réalité québécoise, il nous permettra de comparer les réformes au scénario de base (*reforme=0*). 
+Notre coefficient de Gini pondéré de `r Gini0` est beaucoup plus faible (plus égalitaire) que celui qui est calculé par Statistique Canada, qui était de 0.284 en 2016 (http://qceco.ca/n/3739). Ceci s'explique par le fait que les données, même si elles sont pondérées, ne sont pas exactement représentatives de la population, notamment en excluant les étudiants (généralement à plus faibles revenus). Sans avoir à réfléter parfaitement la réalité québécoise, il nous permettra de comparer les réformes au scénario de base (*reforme=0*). 
+À partir de ce portrait de la situation de base, il est possible d'introduire des réformes et de visualiser les changements d'offre de travail et de distribuution de revenus qui vont s'opérer. 
 
 # 5. Réforme #1: Prime à l'emploi
 
 On a donc une valeur de $\theta$ qui permet de répliquer les moments observés dans les données et de donner quelques statistiques descriptives de l'économie simulée. On peut donc maintenant commencer à faire des analyses de réformes.
 
-La prime à l’emploi est de 3$/h pour tout individu ayant trouvé un emploi et travaillant au moins 30h par semaine. La prime commence à s’appliquer à 30h de travail durant la semaine. Elle est prise de l’article de Clavet et al. (2013). De cet article, les auteurs font l’hypothèse que la stimulation de l’emploi est la meilleure façon de sortir les agents de la pauvreté matérielle. Ce type d’aide aux travailleurs aura pour effet, théoriquement, d’encourager davantage la participation au travail des individus ayant les plus faibles salaires horaires.
+La prime à l’emploi est de 3\$/h pour tout individu ayant trouvé un emploi et travaillant au moins 30h par semaine. La prime commence à s’appliquer à 30h de travail durant la semaine. Elle est prise de l’article de Clavet et al. (2013). De cet article, les auteurs font l’hypothèse que la stimulation de l’emploi est la meilleure façon de sortir les agents de la pauvreté matérielle. Ce type d’aide aux travailleurs aura pour effet, théoriquement, d’encourager davantage la participation au travail des individus ayant les plus faibles salaires horaires.
 Encore une fois les détails de la réforme sont codés dans la fonction `transferts`. Elle assume que les transferts habituels sont maintenus, à l’exception de la prime pour les travailleurs (basée sur le salaire annuel) qui est remplacée par la prime au travail (subvention de 3$ de l’heure). 
+
 ```{r}
 reforme <- 1
 ```
 
 ### Modification des TMEI:
 
-Pour un couple avec enfant (modifier le 3e terme *i* pour obtenir les TMEI des autres types de ménages):
+Pour un couple avec enfant (modifier le 3e terme *i* pour obtenir les TMEI des autres types de ménages), le graphique suivant prédit les taux marginaux effectifs d'imposition. Ils sont très similaires à ceux présentés dans le scénario de base, incluant le mur de l'aide sociale dans les premières centaines de dollars de revenu. Une particularité est que puisque la prime au travail est universelle, elle continue de s'appliquer dans les plus hautes tranches de revenu et diminue le TMEI pour tous de façon parallèle au scénario de base à partir de 40000\$ environ. 
 
 ```{r }
 outtme1 <- tme(100,250000,1)
 ```
 
 ## Simulations du modèle d'offre de travail
-On peut donc utiliser le modèle pour voir les changements anticipés sur les valeurs des moments.
+On peut donc utiliser le modèle pour voir les changements anticipés sur les valeurs des moments.Comme anticipé, la proportion de gens ne travaillant pas a diminuée d'environ 8% à 5% avec la prime au travail, et ce, même en abolissant l'ancienne allocation pour les travailleurs. La politique atteint l'effet souhaitée d'encourager les gens à travailler à temps plein, y compris pour les femmes. Celles-ci travaillent en moyenne 72 heures de plus par année avec la réforme 1. 
 
 ```{r}
 print(simhours(thetatry))
 ```
 
-On peut aussi voir les autres statistiques prédites:
+On peut aussi voir les autres statistiques prédites. Elles sont très similaires à celles du modèle de base en termes d'utilité procurée, de taxes payées, mais les heures de travail moyennes et le revenu médian augmentent.  
 
 ```{r}
 stats1 <- makestats(thetatry)
@@ -997,7 +1005,7 @@ kable(summary(stats1))
 
 En particulier, ici on voit que tous se sont mis à travailler. C'est une conséquence directe de l'hypothèse sur l'utilité: sans aide sociale, ne pas travailler implique une consommation nulle et une utilité de -Infini. Les individus sont donc prêts à tout pour arriver à consommer. 
 
-Voici l'histogramme des heures travaillées et des revenus nets.
+Voici l'histogramme des heures travaillées et des revenus nets et des TMEI. La prime  au travail contribue à augmenter l'emploi, comme il est possible de le voir dans les graphiques (4000 travailleurs à temps plein vs 3000 sans prime au travail). La quantité de gens qui travaillent de 2000 à 2500 heures est également plus élevée que dans le programme de base, ce qui veut dire que le nombre de personnes qui travaillent de 40 heures à 50 heures par semaine a augmenté. De ce fait, plusieurs personnes peuvent bénéficier de la prime: elle semble remplir son objectif. Cela est appuyé par le fait que moins de personnes ont choisi de travailler moins de 1000 heures, bien que cet effet est difficile à évaluer parce qu'il semble minime. De plus, il semble y avoir plus de personnes qui ont un revenu net plus élevé considérant que la distribution des revenus nets est plus asymétrique à droite que dans la situation de base.
 
 ```{r}
 par(mfrow=c(2,2))
@@ -1012,7 +1020,7 @@ plot(outtme1[[1]], outtme1[[2]], main = "TMEI, réforme 1", type = "l", lty = 1,
      ylim = c(0,1.5), xlab = "Revenu", ylab = "TMEI")
 ```
 
-Calculons le coefficient de Gini pour la réforme 1: 
+Calculons l'indice de Gini pour la réforme 1. Tous les éléments précédemment mentionnés pourraient expliquer que l'indice de Gini obtenu est infinitésimalement inférieur à celui dans la situation actuelle, bien que nous sachions que le résultat obtenu est déjà plus bas que le réel indice de Gini québécois. 
 
 ```{r}
 Gini1 <-Gini(x=stats1[,5], n=wght)
@@ -1033,7 +1041,7 @@ reforme <- 2
 
 ### Modification des TMEI:
 
-Pour un couple avec enfant (modifier le 3e terme *i* pour obtenir les TMEI des autres types de ménages):
+Pour un couple avec enfant, le taux marginal d'imposition avec revenu minimal garanti est beaucoup plus épuré qu'avec la foule de transferts du scénario de base. La principale différence est la disparition du mur de l'aide sociale. Considérant que l'aide sociale ne fait pas partie des transferts dans le scénario avec le revenu minimum garanti, il est logique que ce mur disparaisse. Ceci est dû au fait que le revenu minimum garanti est universel et n’est pas pénalisé en fonction du revenu supplémentaire gagné.
 
 ```{r }
 outtme2 <- tme(100,250000,1)
@@ -1041,13 +1049,13 @@ outtme2 <- tme(100,250000,1)
 
 ## Simulations du modèle d'offre de travail
 
-On peut donc utiliser le modèle pour voir les changements anticipés sur les valeurs des moments de la réforme 2.
+On peut utiliser le modèle pour voir les changements anticipés sur les valeurs des moments de la réforme 2.
 
 
 ```{r}
 print(simhours(thetatry))
 ```
-Beaucoup plus de gens ne travaillent pas.
+L'effet le plus marquant et le plus attendu est que beaucoup plus de gens ne travaillent plus. La proportion de personnes ne travaillant pas est de plus de 20%. L'ensemble de la population travaille moins d'heures en moyenne et les femmes n'y échappent pas, ayant d'avance une plus grance préférence pour le loisir. L'écart-type des heures travaillées s'allonge, témoignant de la plus grande variabilité des choix d'offre de travail suite à la réforme 2.
  
 On peut aussi voir les autres statistiques prédites:
 
@@ -1057,9 +1065,10 @@ colnames(stats2) <- c("heures travaillées","utilité","revenu brut","taxes et t
 kable(summary(stats2))
 ```
 
-En particulier, ici on voit que tous se sont mis à travailler. C'est une conséquence directe de l'hypothèse sur l'utilité: sans aide sociale, ne pas travailler implique une consommation nulle et une utilité de -Infini. Les individus sont donc prêts à tout pour arriver à consommer. 
+Au dela des heures travaillées et du revenu gagné, on constate que l'utilité minimale des individus a augmenté. Également, même pour l'individu moyen, les transferts (RMG) surpassent les taxes payées. Le revenu minimal atteint 19012\$, soit plus du double de celui du scénario de base. Cette hause de revenu pour les individus les plus défavorisés permet de mieux combler les besoins de base. 
 
-Voici l'histogramme des heures travaillées et des revenus nets.
+
+Voici l'histogramme des heures travaillées et des revenus bruts et nets. L'effet notable dans la distribution des heures travaillées est qu'un plus grand nombre de personnes ont choisi de ne pas travailler ou de travailler moins, avec pour résultat qu'un nombre significativement moins élevé de personnes ont choisi de travailler 1500 heures ou plus par rapport à l'option actuelle. C'est un résultat attendu dans le cas de l'instauration d'un revenu minimum puisque les gens gagnent naturellement plus en transferts, suffisamment pour être capable de moins travailler et de pouvoir tout de même subvenir à leurs besoins. Les individus sont ainsi capables de maintenir leur consommation avec moins de travail, ce qui améliore leur utilité pour un niveau de travail donné. Ayant une préférence pour le loisir, ces individus choisissent de moins travailler.  Ensuite, on remarque qu'un nombre minime de personnes gagnent moins de 20 000\$ par année, ce qui est normal considérant que le transfert de base pour quelqu'un qui ne travaille pas et qui a entre 20 et 64 ans est de 20 333\$ par année. De façon générale, la distribution est plus centrée autour de 50 000\$ et le revenu médian a augmenté. Ce sont des résultats plausibles du revenu minimum garanti retrouvés dans la littérature. 
 
 ```{r}
 par(mfrow=c(2,2))
@@ -1074,7 +1083,7 @@ plot(outtme2[[1]], outtme2[[2]], main = "TMEI, réforme 2", type = "l", lty = 1,
      ylim = c(0,1.5), xlab = "Revenu", ylab = "TMEI")
 ```
 
-Calculons le coefficient de Gini pour la réforme 2: 
+Calculons le coefficient de Gini pour la réforme 2. Il est plus faible que dans le scénario de base, mais cela est marginal. Dans l'ensemble le revenu minimum garanti ne diminue que de peu les inégalités.
 
 ```{r}
 Gini2 <-Gini(x=stats2[,5], n=wght)
@@ -1092,7 +1101,7 @@ reforme <- 3
 
 ### Modification des TMEI:
 
-Pour un couple avec enfant (modifier le 3e terme *i* pour obtenir les TMEI des autres types de ménages):
+Pour un couple avec enfant, le taux marginal effectif d'imposition est encore une fois simplifié par rapport au scénario de base. Puisque l'aide sociale a été coupée, il y a la disparition du mur de l'aide sociale, où les gens sont taxés à un taux pouvant être supérieur à 1. À la place, on observe un taux marginal effectif d'imposition qui est progressif dans son ensemble, mais décalé à la baisse en raison de la prime au travail qui rend plus généreux encore les transferts, tous niveaux de revenus confondus.
 
 ```{r}
 outtme3 <- tme(100,250000,1)
@@ -1104,6 +1113,7 @@ On peut donc utiliser le modèle pour voir les changements anticipés sur les va
 ```{r}
 print(simhours(thetatry))
 ```
+L'ajout de la prime au travail mitige un peu les effets dissuadifs du revenu minimal garanti sur l'offre du travail, avec 19% de personnes ne travaillant pas. 
 
 On peut aussi voir les autres statistiques prédites:
 
@@ -1112,10 +1122,10 @@ stats3 <- makestats(thetatry)
 colnames(stats3) <- c("heures travaillées","utilité","revenu brut","taxes et transferts", "revenu net")
 summary(stats3)
 ```
-
+Avec des transferts encore plus généreux, l'utilité minimale des individus augmente davantage. Le revenu median est encore plus élevé que dans les réformes antérieures grâce à des transferts qui continuent de surpasser les taxes payées même dans le 3e quartile de revenu. 
  
 
-Voici l'histogramme des heures travaillées et des revenus nets.
+Voici l'histogramme des heures travaillées et des revenus bruts et nets.
 
 ```{r}
 par(mfrow=c(2,2))
@@ -1130,7 +1140,13 @@ plot(outtme3[[1]], outtme3[[2]], main = "TMEI, réforme 3", type = "l", lty = 1,
      ylim = c(0,1.5), xlab = "Revenu", ylab = "TMEI")
 ```
 
-Calculons le coefficient de Gini pour la réforme 3: 
+Concernant la distribution des heures travaillées, une constatation majeure est que le nombre de personnes qui ne travaillent pas a beaucoup augmenté par rapport à la situation actuelle, et cet effet est visible jusqu'à 1500 heures de travail. L'effet du revenu minimum garanti se fait sentir puisque les gens préfèrent avoir plus de loisir tout en sachant qu'ils peuvent réduire leurs heures et tout de même vivre à un niveau convenable en raison du revenu minimum garanti. 
+
+Ensuite, la distribution des revenus nets s'est déplacée pour être centrale autour de 50 000\$, ce qui est beaucoup plus élevé que dans le cas de la situation actuelle. Également, un effet majeur du revenu minimum garanti est qu'il y a un nombre marginal de personnes qui gagnent moins de 20 000\$ par année puisque le transfert minimum du revenu minimum garanti est de 20 333\$ par année. L'effet de la prime au travail se fait peu sentir tant dans la distribution que sur le revenu des individus, ce qui est espéré puisque le transfert du revenu minimum garanti est plus attirant et potentiellement plus élevé que celui pouvant être fourni par la prime au travail, d'autant plus que les individus doivent fournir un effort significatif pour obtenir cette prime, donc pour cette raison son effet est plus faible. 
+
+
+
+Calculons le coefficient de Gini pour la réforme 3. Encore une fois, celui-ci est marginalement inférieur à celui observé dans la situation actuelle, donc il y a peu de changements à ce niveau.
 
 ```{r}
 Gini3 <-Gini(x=stats3[,5], n=wght)
@@ -1146,7 +1162,7 @@ Les réformes sont comparées sur la base des heures travaillées:
 vioplot(stats0[,1],
         stats1[,1],
         stats2[,1],
-        stats3[,1], names = c("De base",  "PT","RMG", "RMG et PT"),
+        stats3[,1], names = c("Base",  "PT","RMG", "RMG et PT"),
         col=c("magenta4", "dark turquoise", "seagreen", "blue2"), lty="blank",
         horizontal = T, 
         xlab = "Heures travaillées annuelles",
@@ -1163,7 +1179,7 @@ Voici l'effet sur les revenus nets:
 vioplot(stats0[,5],
         stats1[,5],
         stats2[,5],
-        stats3[,5], names = c("De base",  "PT","RMG", "RMG et PT"),
+        stats3[,5], names = c("Base",  "PT","RMG", "RMG et PT"),
         col=c("magenta4", "dark turquoise", "seagreen", "blue2"), lty="blank",ylim = c(0, 150000),
         xlab = "Revenu net annuel ($)",
         horizontal = TRUE,
@@ -1179,7 +1195,7 @@ plot(outtme0[[1]], outtme0[[2]], main = "TMEI, ensemble des réformes", type = "
 lines(outtme1[[1]], outtme1[[2]], type = "l", lty = 2, lwd=2, col= "dark turquoise")
 lines(outtme2[[1]], outtme2[[2]], type = "l", lty = 1, col= "seagreen")
 lines(outtme3[[1]], outtme3[[2]], type = "l", lty = 1, col= "blue2")
-legend("bottomright", legend=c("De base", "Prime travail", "Revenu minimum garanti", "RMG et PT"),
+legend("bottomright", legend=c("Base", "Prime travail", "Revenu minimum garanti", "RMG et PT"),
        col=c("magenta4", "dark turquoise", "seagreen", "blue2"), lty=c(2,2,1,1), cex=0.8, box.lty=0)
 ```
 
@@ -1188,8 +1204,8 @@ Variations de l'indice de Gini, pondéré pour les poids populationnels
 ```{r, fig49,fig.width = 4.5, fig.height=3 }
 listeGini <- c(Gini0, Gini1, Gini2, Gini3)
 barplot(listeGini,
-        names.arg=c("De base",  "PT", "RMG","RMG et PT"),
-        col=c("magenta4", "dark turquoise", "seagreen", "blue2"), ylim = c(0.1, 0.25),border=NA)
+        names.arg=c("Base",  "PT", "RMG","RMG et PT"),
+        col=c("magenta4", "dark turquoise", "seagreen", "blue2"), ylim = c(0, 0.25),border=NA)
 ```
 
 ## Conclusions
