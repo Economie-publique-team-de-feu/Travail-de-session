@@ -28,8 +28,8 @@ Dans ce travail, nous proposons des ajustements au modèle de simulation de l'of
 
 3. Une combinaison des deux réformes 
 
-Comme mentionné, les effets de ces réformes seront comparés sur la base de l'offre de travail, de la distribution des revenus dans la société et l'indice de Gini comme mesure des inégalités.
 
+Comme mentionné, les effets de ces réformes seront comparés sur la base de l'offre de travail, de la distribution des revenus dans la société et sur les taux marginaux effectifs d'imposition.
 
 # 0. Chargement des librairies
 
@@ -243,11 +243,8 @@ La liste des principaux transferts fédéraux et provinciaux est tirée de l’�
 Les abréviations suivantes ont été utilisées : 
 
 * *ps* : personne seule
-
 * *c* : couple sans enfants
-
 * *fm* : famille monoparentale
-
 * *ce* : couple avec enfants
 
 ```{r}
@@ -969,6 +966,7 @@ print(Gini0)
 Notre coefficient de Gini pondéré de `r Gini0` est beaucoup plus faible (plus égalitaire) que celui qui est calculé par Statistique Canada, qui était de 0.284 en 2016 (http://qceco.ca/n/3739). Ceci s'explique par le fait que les données, même si elles sont pondérées, ne sont pas exactement représentatives de la population, notamment en excluant les étudiants (généralement à plus faibles revenus). Sans avoir à réfléter parfaitement la réalité québécoise, il nous permettra de comparer les réformes au scénario de base (*reforme=0*). 
 À partir de ce portrait de la situation de base, il est possible d'introduire des réformes et de visualiser les changements d'offre de travail et de distribuution de revenus qui vont s'opérer. 
 
+
 # 5. Réforme #1: Prime à l'emploi
 
 On a donc une valeur de $\theta$ qui permet de répliquer les moments observés dans les données et de donner quelques statistiques descriptives de l'économie simulée. On peut donc maintenant commencer à faire des analyses de réformes.
@@ -1223,7 +1221,7 @@ HURTEAU, Philippe, LABRIE, Vician, NGUYEN, Minh, Le revenu viable 2019 et les si
 
 Chaire en fiscalité et finances publiques, Crédit d'impôt pour la TPS/TVH, École de gestion de l'Université de Sherbrooke, 2019, article accessible à l'adresse < https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/credit-impot-tps-tvh/ >, consulté le 8 avril 2020
 
- Chaire en fiscalité et en finances publiques, Allocation canadienne pour enfants, École de gestion de l'Université de Sherbrooke, 2019, article accessible à l'adresse < https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-canadienne-enfants/ >, consulté le 8 avril 2020
+Chaire en fiscalité et en finances publiques, Allocation canadienne pour enfants, École de gestion de l'Université de Sherbrooke, 2019, article accessible à l'adresse < https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-canadienne-enfants/ >, consulté le 8 avril 2020
 
 Chaire en fiscalité et en finances publiques, Allocation famille, École de gestion de l'Université de Sherbrooke, 2019, article accessible à l'adresse < https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-famille-soutien-enfants/ >, consulté le 8 avril 2020
 
@@ -1231,7 +1229,7 @@ Chaire en fiscalité et en finances publiques, Crédit d'impôt pour solidarité
 
 Chaire en fiscalité et en finances publiques, Allocation canadienne pour les travailleurs, École de gestion de l'Université de Sherbrooke, 2020, article accessible à l'adresse < https://cffp.recherche.usherbrooke.ca/outils-ressources/guide-mesures-fiscales/allocation-canadienne-pour-les-travailleurs/ >, consulté le 8 avril 2020
 
-Cirano, Évolution du coefficient de Gini, revenu disponible ajusté, Le Québec économique, 2020, données accessible à l’adresse <https://qe.cirano.qc.ca/theme/revenus-inegalites/inegalites/graphique-evolution-coefficient-gini-revenu-disponible-ajuste >, consulté le 28 mars 2020
+CIRANO, Évolution du coefficient de Gini, revenu disponible ajusté, Le Québec économique, 2020, données accessible à l’adresse <https://qe.cirano.qc.ca/theme/revenus-inegalites/inegalites/graphique-evolution-coefficient-gini-revenu-disponible-ajuste >, consulté le 28 mars 2020
 
 Gouvernement du Canada, Les taux d'imposition canadiens pour les particuliers - années courante et années passées, 2020, données accessibles à l'adresse < https://www.canada.ca/fr/agence-revenu/services/impot/particuliers/foire-questions-particuliers/taux-imposition-canadiens-particuliers-annee-courante-annees-passees.html#federal >, consulté le 8 avril 2020 
 
