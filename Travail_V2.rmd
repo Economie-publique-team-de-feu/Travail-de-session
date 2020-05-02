@@ -1192,7 +1192,7 @@ vioplot(stats0[,5],
 
 Dans les trois réformes proposées, nous observons une augmentation du revenu net médian. Cependant, la plus grande différence est observée lorsque la réforme du revenu minimum garanti combiné à la subvention salariale est appliquée. Cela est logique et dû au seuil minimum de revenu établi par cette réforme. La subvention salariale à elle seule a tout de même une augmentation de la médiane du revenu intéressante et un amincissement de la queue inférieure de la courbe, ce qui est intuitif et confirme la théorie comme quoi une subvention salariale stimule le travail.
 
-Voici l'effet sur les taux marginaux effectifs d'imposition:
+Voici l'effet sur les taux marginaux effectifs d'imposition de chaque réforme proposée:
 
 ```{r}
 plot(outtme0[[1]], outtme0[[2]], main = "TMEI, ensemble des réformes", type = "l", lty = 2,lwd=2, 
@@ -1204,7 +1204,10 @@ legend("bottomright", legend=c("Base", "Subvention salariale", "Revenu minimum g
        col=c("magenta4", "dark turquoise", "seagreen", "blue2"), lty=c(2,2,1,1), cex=0.8, box.lty=0)
 ```
 
-Variations de l'indice de Gini, pondéré pour les poids populationnels
+Comparativement au scénario de base, nous observons que le mur de pauvreté causé par le programme d’aide sociale disparaît avec le revenu minimum garanti. Cette situation est intuitive puisque le revenu minimum est offert universellement aux agents peu importe leur revenu, il n’est donc pas soumis à des pénalités en fonction du revenu gagné. L’évolution par la suite est moins rapide, mais rattrape le scénario initial à partir d’un peu plus de 100 000\$ de revenus. Un autre élément intéressant est lors de l’application de la subvention salariale. Celle-ci entraîne une diminution parallèle du TMEI comparativement aux scénarios qui ne l’incluent pas. Cette diminution est causée principalement par le fait que, tel que mentionné plus haut, la subvention salariale est un transfert universel qui s’applique à tout niveau de revenu, entraînant ainsi cette diminution parallèle observée des taxes perçues. 
+
+
+Finalement, voici l'ensemble des indices de Gini, pondérés pour les poids populationnels:
 
 ```{r, fig49,fig.width = 4.5, fig.height=3 }
 listeGini <- c(Gini0, Gini1, Gini2, Gini3)
@@ -1212,6 +1215,9 @@ barplot(listeGini,
         names.arg=c("Base",  "SubvSal", "RMG","RMG et SubSal"),
         col=c("magenta4", "dark turquoise", "seagreen", "blue2"), ylim = c(0, 0.25),border=NA)
 ```
+
+Tel que mentionné plus haut, les indices de Gini obtenus dans les simulations sont plus bas que le réel coefficient au Québec, puisque celui-ci a une valeur de 0,26, alors que notre valeur maximale est de 0,209. Cela dit, en comparant les indices de Gini obtenus par les quatre situations comparées, il est possible de constater que la réforme qui offre le coefficient de Gini le plus faible est la subvention salariale, alors que le plus élevé est observé dans la situation actuelle. Cependant, les différences entre les indices sont minimes, variant de 0,01 au maximum. Ce faisant, il serait approprié de conclure que les réformes proposées ne changent pas significativement l'inégalité des revenus. 
+
 
 ## Conclusions
 En bref, 
